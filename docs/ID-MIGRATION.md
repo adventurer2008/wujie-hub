@@ -4,7 +4,7 @@
 
 - 新仓库：https://github.com/adventurer2008/wujie-hub ，独立GitHub仓库ID为1437730378；插件ID、包名和目录统一为 wujie-hub。
 - 旧仓库：https://github.com/adventurer2008/plugin-manager-cn ，原GitHub仓库ID为1437068143，保留0.1.16旧ID发行文件。旧条目标为Community Manager CN Legacy。
-- 新条目通过审核并可安装后，再归档旧社区条目。归档不删除旧GitHub仓库及用户本地文件。新条目下载统计重新开始，旧用户需重新安装。
+- 旧社区条目暂保留Legacy入口，不自动归档；后续是否归档另行安排。归档也不删除旧GitHub仓库及用户本地文件。新条目下载统计重新开始，旧用户需重新安装。
 - 同一维护者继续维护新项目，保留源代码历史、版权和Apache2许可证。
 
 ## 同设备、同库的手动替换

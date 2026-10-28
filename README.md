@@ -2,7 +2,7 @@
 
 插件安装中心
 
-这是同一维护者发布的新条目 `wujie-hub`，独立仓库为 `adventurer2008/wujie-hub`。旧版 `plugin-manager-cn` 保留在原仓库；新条目通过后归档旧的社区入口。旧用户需重新安装，迁移说明见 [ID-MIGRATION](docs/ID-MIGRATION.md)。
+这是同一维护者发布的新条目 `wujie-hub`，独立仓库为 `adventurer2008/wujie-hub`。旧版 `plugin-manager-cn` 和 Legacy 社区条目暂时保留，不自动归档。旧用户需重新安装才能切换到新条目，说明见 [ID-MIGRATION](docs/ID-MIGRATION.md)。
 
 在国内网络环境下，便捷搜索、安装和升级社区插件，管理无界同步版本与本机代码回退。
 
@@ -10,7 +10,7 @@
 
 Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its single settings page also provides a dedicated Wujie Sync section for selecting stable and Alpha releases, checking SHA-256 digests, and restoring a local code version that the user has explicitly confirmed as working. The interface is in Chinese. The plugin ID and installation folder are `wujie-hub`.
 
-This separately submitted successor is maintained by the same owner as [the legacy project](https://github.com/adventurer2008/plugin-manager-cn), with source history, copyright and Apache License 2.0 preserved. The legacy Community entry will be archived after the new entry becomes installable.
+This separately submitted successor is maintained by the same owner as [the legacy project](https://github.com/adventurer2008/plugin-manager-cn), with source history, copyright and Apache License 2.0 preserved. The legacy Community entry remains available for existing users; it will not be archived automatically. Switching requires a separate installation.
 
 ## Installation and usage
 
