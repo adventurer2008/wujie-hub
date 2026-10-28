@@ -1,25 +1,19 @@
-# wujie-hub ID 迁移
+# Wujie Hub 新条目与旧版处理
 
-GitHub 仓库已改名为 https://github.com/adventurer2008/wujie-hub ，旧仓库网址由 GitHub 重定向。包名、新插件 ID 和构建目录统一为 wujie-hub。
+维护者选择重新提交独立插件，而不修改原社区条目的ID。
 
-社区已发布条目的 ID 不能直接编辑。官方要求联系 #community-directory 管理员；更换 ID 将重置下载统计，原用户需要重新安装。依据：https://docs.obsidian.md/community-directory/faq 。不要自行把新 ID 覆盖到旧目录，也不要创建重复条目来绕过迁移。
+- 新仓库：https://github.com/adventurer2008/wujie-hub ，独立GitHub仓库ID为1437730378；插件ID、包名和目录统一为 wujie-hub。
+- 旧仓库：https://github.com/adventurer2008/plugin-manager-cn ，原GitHub仓库ID为1437068143，保留0.1.16旧ID发行文件。旧条目标为Community Manager CN Legacy。
+- 新条目通过审核并可安装后，再归档旧社区条目。归档不删除旧GitHub仓库及用户本地文件。新条目下载统计重新开始，旧用户需重新安装。
+- 同一维护者继续维护新项目，保留源代码历史、版权和Apache2许可证。
 
-在官方确认切换顺序前，main 和社区渠道保留 0.1.16 旧 ID；本分支准备0.1.17新 ID，不能直接合并发布。正式发布检查会阻止尚未记录官方确认的 ID 迁移。
+## 同设备、同库的手动替换
 
-## 同设备、同库的手动迁移
+1. 在 Obsidian 官方插件设置中停用旧管理器，保留旧目录、配置和备份。
+2. 新发行包安装到 `<配置目录>/plugins/wujie-hub/`。不要混用旧包与新目录，不要让新旧管理器同时运行。
+3. 如需沿用管理器配置，仅在同一设备、同一库中手动复制旧data.json到新目录；保留原文件，不能覆盖已有新配置。不要跨设备复制本机回退快照。
+4. 启用新插件后检查搜索、更新和本机回退目标。新管理器保护新旧两个管理器ID；旧版仍运行时拒绝文件修改。
 
-1. 在 Obsidian 官方插件设置中停用旧管理器，保留旧目录和全部配置、备份。
-2. 新发行包安装到 `<配置目录>/plugins/wujie-hub/`。不要重命名旧目录来替代安装，也不要让新旧管理器同时运行。
-3. 如需沿用管理器配置，仅在同一设备、同一库中手动复制旧目录的 data.json 到新目录；原文件保留，且不能覆盖已有新配置。严禁从另一设备复制含本机回退快照的配置。
-4. 启用新插件后检查搜索、更新和本机回退目标。新管理器拒绝管理新旧两个管理器 ID；旧版仍运行时拒绝开始文件修改。
+不会自动移动或删除旧目录，不改动无界同步或其他目标插件的data.json。移动端和最低版本运行时验收按维护者要求发布后统一补充。
 
-不自动移动、删除旧目录，不改动无界同步或其他目标插件的 data.json。跨设备与旧库配置迁移结果不能据此视为已验证。
-
-## 待发送给官方管理员的申请
-
-I maintain Wujie Hub, currently listed as `plugin-manager-cn`:
-https://community.obsidian.md/plugins/plugin-manager-cn
-
-I renamed my GitHub repository from `adventurer2008/plugin-manager-cn` to `adventurer2008/wujie-hub` (the old URL redirects). I would like to migrate the Community entry ID to `wujie-hub` and update its repository location.
-
-I understand that changing the identifier resets downloads and requires existing users to reinstall. I have kept the published default branch and release 0.1.16 on the old ID while preparing the new ID on `codex/wujie-hub-id-migration`. Could an administrator assist with the migration and confirm the sequence for switching the manifest and publishing the new-ID release? I have not created a duplicate Community entry.
+规则参考：https://docs.obsidian.md/community-directory/faq 。本次通过独立仓库和新ID重新提交审核，保留旧入口直到新条目可用，不是原条目ID迁移。

@@ -1,5 +1,10 @@
 {
-  "status": "pending",
+  "status": "new-entry-authorized",
+  "mode": "new-entry",
+  "maintainerApproved": true,
+  "instruction": "重新建个，旧的通过后归档；do it",
+  "legacyRepositoryId": 1437068143,
+  "newRepositoryId": 1437730378,
   "fromId": "plugin-manager-cn",
   "toId": "wujie-hub",
   "fromRepository": "adventurer2008/plugin-manager-cn",
