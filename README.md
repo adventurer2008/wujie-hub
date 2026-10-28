@@ -2,7 +2,7 @@
 
 插件安装中心
 
-这是同一维护者发布的新条目 `wujie-hub`，独立仓库为 `adventurer2008/wujie-hub`。旧版 `plugin-manager-cn` 和 Legacy 社区条目暂时保留，不自动归档。旧用户需重新安装才能切换到新条目，说明见 [ID-MIGRATION](docs/ID-MIGRATION.md)。
+这是同一维护者发布的新条目 `wujie-hub`，独立仓库为 `adventurer2008/wujie-hub`。
 
 在国内网络环境下，便捷搜索、安装和升级社区插件，管理无界同步版本与本机代码回退。
 
