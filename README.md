@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.25
+# Wujie Hub — 0.1.26
 
 插件安装中心
 
@@ -54,7 +54,7 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 专属区支持版本清单、指定版本安装、SHA-256、手动确认正常版本和本机 Rollback。正常版本只有点击“标记当前版本正常”才保存。回退只恢复代码，不恢复配置或远端数据迁移。
 
-无界同步的 Alpha 和稳定版清单、安装文件统一从 [user.wujiesync.cc/download/](https://user.wujiesync.cc/download/) 读取。点击“检查更新”后，Alpha 最多显示最新3个，稳定版最多显示最新5个，共用“安装所选版本”按钮。Alpha 使用 alpha/releases.json，稳定版使用 releases.json；清单或本机缓存中的旧官方域名及 GitHub 稳定版地址会转换为新站地址，不回退旧域名或 GitHub 下载。文件仍需通过清单 SHA-256 校验；本机已确认的回退目标独立保留。可由开发者配置自有 HTTPS 清单（feedUrl）。
+无界同步的 Alpha 和稳定版清单、安装文件统一从 [user.wujiesync.cc/download/](https://user.wujiesync.cc/download/) 读取。点击“检查更新”后，Alpha 最多显示最新3个，稳定版最多显示最新5个，共用“安装所选版本”按钮。下拉分组先显示稳定版，测试版放在最下面；点击检查更新后，在当前页面即时刷新历史版本，仍可用的已选版本保持不变。Alpha 使用 alpha/releases.json，稳定版使用 releases.json；清单或本机缓存中的旧官方域名及 GitHub 稳定版地址会转换为新站地址，不回退旧域名或 GitHub 下载。文件仍需通过清单 SHA-256 校验；本机已确认的回退目标独立保留。可由开发者配置自有 HTTPS 清单（feedUrl）。
 
 在无界同步更多菜单中选择“标记当前版本正常”，确认后保存本机代码快照和摘要。随后出现“回退至版本号”，点击即可离线恢复代码，当前配置保留。安装其他版本不会覆盖回退目标。首次安装 Alpha 前若无目标，会要求你明确确认当前版本已验证正常。
 

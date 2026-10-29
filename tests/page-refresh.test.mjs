@@ -208,8 +208,9 @@ test("late auto response cannot overwrite a newer refresh or a hidden page", asy
   await request;
   assert.equal(p.selected, "1.1.2-alpha.1");
 });
-test("manual refresh updates both channels", async () => {
-  const { p, entry } = fixture();
+test("manual refresh repaints both channels on declarative hosts without reopening", async () => {
+  const { p, entry, counts } = fixture();
+  p.update = () => {}; // Host refresh does not invoke the custom renderer.
   p.pm.state.feedUrl = "https://example.test/stable.json";
   let calls = [];
   p.pm.net.json = async (url) => {
@@ -227,11 +228,36 @@ test("manual refresh updates both channels", async () => {
         : [entry],
     };
   };
-  await p.refreshWujieAll();
+  await p.task(() => p.refreshWujieAll());
   assert.equal(calls.length, 2);
   assert.deepEqual(
     p.releases.map((r) => r.version),
     ["1.1.2-alpha.2", "1.1.2"],
   );
   assert.equal(p.openGeneration, 2);
+  assert.equal(p.working, false);
+  assert.equal(counts().renders, 1);
+  assert.equal(p.selected, "1.1.2-alpha.2");
+});
+
+test("manual refresh preserves a still-visible selection and ignores responses after hiding", async () => {
+  const { p, entry } = fixture();
+  p.selected = entry.version;
+  p.pm.net.json = async () => ({
+    releases: [entry, { ...entry, version: "1.1.1", channel: "Stable" }],
+  });
+  await p.refreshWujieAll();
+  assert.equal(p.selected, entry.version);
+  const old = p.releases;
+  let complete;
+  const response = new Promise((resolve) => {
+    complete = resolve;
+  });
+  p.pm.net.json = () => response;
+  const pending = p.refreshWujieAll();
+  p.pageVisible = false;
+  p.openGeneration++;
+  complete({ releases: [entry] });
+  await pending;
+  assert.equal(p.releases, old);
 });

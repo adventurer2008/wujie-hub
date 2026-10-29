@@ -138,6 +138,8 @@ class Page extends CompatibleSettingsTab {
     } finally {
       this.working = false;
       this.refreshSettings();
+      // Declarative settings updates do not always rerun a custom renderer.
+      if (this.pageVisible) this.refreshWujieView?.();
     }
   }
   button(s: Setting, label: string, fn: () => Promise<void>) {
@@ -562,11 +564,12 @@ class Page extends CompatibleSettingsTab {
   }
 
   async refreshWujieAll() {
-    this.openGeneration++;
+    const generation = ++this.openGeneration;
     const [history, alpha] = await Promise.allSettled([
       loadWujieReleases(this.pm.net, this.pm.state.feedUrl),
       loadSiteAlpha(this.pm.net),
     ]);
+    if (!this.pageVisible || generation !== this.openGeneration) return;
     if (history.status === "rejected" && alpha.status === "rejected")
       throw Error(
         "Alpha：" +
@@ -584,7 +587,9 @@ class Page extends CompatibleSettingsTab {
         : this.releases.filter((r) => r.channel === "Stable");
     this.releases = [...nextAlpha, ...nextStable];
     this.pm.state.wujieReleases = this.releases;
-    this.selected = recentReleases(this.releases)[0]?.version || "";
+    const recent = recentReleases(this.releases);
+    if (!recent.some((r) => r.version === this.selected))
+      this.selected = recent[0]?.version || "";
     this.alphaSourceWarning =
       alpha.status === "rejected"
         ? "Alpha 刷新失败：" + String(alpha.reason)
