@@ -79,22 +79,25 @@ test("download-site metadata resolves plugin files and rejects HTTP file URLs", 
   };
   const release = parseSiteFeed(
     feed,
-    "https://sync.wujiesync.cc/download/alpha/versions.json",
+    "https://user.wujiesync.cc/download/alpha/versions.json",
   )[0];
   assert.equal(
     release.fileUrls["main.js"],
-    "https://sync.wujiesync.cc/download/alpha/1.1.2-alpha.1/main.js",
+    "https://user.wujiesync.cc/download/alpha/1.1.2-alpha.1/main.js",
   );
   const net = {
     get: async () => '<a href="alpha/versions.json">Alpha 清单</a>',
-    json: async () => feed,
+    json: async (url) => {
+      assert.equal(url, "https://user.wujiesync.cc/download/alpha/releases.json");
+      return feed;
+    },
   };
   assert.equal((await loadSiteAlpha(net))[0].version, "1.1.2-alpha.1");
   feed.releases[0].baseUrl = "http://sync.wujiesync.cc/download/";
   assert.deepEqual(
     parseSiteFeed(
       feed,
-      "https://sync.wujiesync.cc/download/alpha/versions.json",
+      "https://user.wujiesync.cc/download/alpha/versions.json",
     ),
     [],
   );

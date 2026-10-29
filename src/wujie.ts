@@ -3,7 +3,7 @@ import { Bundle, FILES } from "./core";
 import { Network } from "./network";
 import { record } from "./json";
 export const WUJIE_REPO = "adventurer2008/obsidian-smart-sync-release-cn";
-export const WUJIE_DOWNLOAD_SITE = "https://sync.wujiesync.cc/download/";
+export const WUJIE_DOWNLOAD_SITE = "https://user.wujiesync.cc/download/";
 export const WUJIE_ALPHA_FEED = new URL(
   "alpha/releases.json",
   WUJIE_DOWNLOAD_SITE,

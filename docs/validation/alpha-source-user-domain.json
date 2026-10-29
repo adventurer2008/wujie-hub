@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-29",
+  "requestedDownloadSite": "https://user.wujiesync.cc/download/",
+  "configuredFeed": "https://user.wujiesync.cc/download/alpha/releases.json",
+  "feedPathBasis": "Retain the existing alpha/releases.json feed layout under the maintainer-provided download site.",
+  "liveValidation": "blocked",
+  "reason": "HTTPS TLS handshake failed from this workstation with both Invoke-WebRequest and curl; no live feed or package hashes verified.",
+  "publicationDependency": "Confirm that the new host serves alpha/releases.json over valid HTTPS and that the feed package URLs point to reachable HTTPS release files before claiming live download acceptance."
+}
