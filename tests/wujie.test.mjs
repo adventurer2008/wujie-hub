@@ -14,6 +14,17 @@ const { parseReleases, hashes, verifyBundle, downloadWujie } =
 const { recentReleases, parseSiteFeed, loadSiteAlpha } =
   await import("../test-output/wujie.mjs");
 
+test("default selection is the highest stable version, never a test release", async () => {
+  const { defaultReleaseVersion } = await import("../test-output/wujie.mjs");
+  const rows = [
+    { version: "9.0.0-alpha.1", channel: "Alpha", publishedAt: "2026-10-29" },
+    { version: "1.9.0", channel: "Stable", publishedAt: "2026-10-29" },
+    { version: "1.10.0", channel: "Stable", publishedAt: "2026-10-28" },
+  ];
+  assert.equal(defaultReleaseVersion(recentReleases(rows)), "1.10.0");
+  assert.equal(defaultReleaseVersion([rows[0]]), "");
+});
+
 test("Alpha feed and cached downloads use the new official host without old-host fallback", async () => {
   const bundle = {
     "manifest.json": '{"id":"wujie-sync","version":"1.2.0-alpha.1"}',

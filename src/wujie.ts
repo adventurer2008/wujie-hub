@@ -1,4 +1,4 @@
-import { Bundle, FILES } from "./core";
+import { Bundle, FILES, compare } from "./core";
 import { Network } from "./network";
 import { record } from "./json";
 export const WUJIE_REPO = "adventurer2008/obsidian-smart-sync-release-cn";
@@ -46,8 +46,22 @@ export function recentReleases(releases: WujieRelease[]) {
   );
   return [
     ...sorted.filter((r) => r.channel === "Alpha").slice(0, 3),
-    ...sorted.filter((r) => r.channel === "Stable").slice(0, 5),
+    ...sorted
+      .filter(
+        (r) => r.channel === "Stable" && /^\d+\.\d+\.\d+$/.test(r.version),
+      )
+      .sort((a, b) => compare(b.version, a.version))
+      .slice(0, 5),
   ];
+}
+export function defaultReleaseVersion(releases: WujieRelease[]): string {
+  return (
+    releases
+      .filter(
+        (r) => r.channel === "Stable" && /^\d+\.\d+\.\d+$/.test(r.version),
+      )
+      .sort((a, b) => compare(b.version, a.version))[0]?.version || ""
+  );
 }
 export function parseSiteFeed(
   value: unknown,

@@ -162,7 +162,7 @@ test("opening refreshes site Alpha without GitHub and keeps stable choices", asy
     p.releases.map((r) => r.version),
     ["1.1.2-alpha.2", "1.1.1"],
   );
-  assert.equal(p.selected, "1.1.2-alpha.2");
+  assert.equal(p.selected, "1.1.1");
   assert.deepEqual(counts(), { saves: 1, renders: 1 });
 });
 
@@ -237,12 +237,13 @@ test("manual refresh repaints both channels on declarative hosts without reopeni
   assert.equal(p.openGeneration, 2);
   assert.equal(p.working, false);
   assert.equal(counts().renders, 1);
-  assert.equal(p.selected, "1.1.2-alpha.2");
+  assert.equal(p.selected, "1.1.2");
 });
 
 test("manual refresh preserves a still-visible selection and ignores responses after hiding", async () => {
   const { p, entry } = fixture();
   p.selected = entry.version;
+  p.manualSelection = true;
   p.pm.net.json = async () => ({
     releases: [entry, { ...entry, version: "1.1.1", channel: "Stable" }],
   });

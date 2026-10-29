@@ -14,6 +14,7 @@ import {
   loadWujieReleases,
   loadSiteAlpha,
   recentReleases,
+  defaultReleaseVersion,
   downloadWujie,
   hashes,
   verifyBundle,
@@ -103,6 +104,7 @@ class Page extends CompatibleSettingsTab {
   working = false;
   releases: WujieRelease[] = [];
   selected = "";
+  manualSelection = false;
   alphaSourceWarning = "";
   pageVisible = false;
   openGeneration = 0;
@@ -111,9 +113,17 @@ class Page extends CompatibleSettingsTab {
   constructor(private pm: PM) {
     super(pm.app, pm);
     this.releases = pm.state.wujieReleases || [];
-    this.selected =
-      (this.releases.find((r) => r.channel === "Alpha") || this.releases[0])
-        ?.version || "";
+    this.selected = defaultReleaseVersion(recentReleases(this.releases));
+  }
+  selectDefaultRelease() {
+    const visible = recentReleases(this.releases);
+    if (
+      this.manualSelection &&
+      visible.some((r) => r.version === this.selected)
+    )
+      return;
+    this.manualSelection = false;
+    this.selected = defaultReleaseVersion(visible);
   }
   hide() {
     this.pageVisible = false;
@@ -181,7 +191,11 @@ class Page extends CompatibleSettingsTab {
   renderPage(el: HTMLElement) {
     const opening = !this.pageVisible;
     this.pageVisible = true;
-    if (opening) this.openGeneration++;
+    if (opening) {
+      this.openGeneration++;
+      this.manualSelection = false;
+      this.selectDefaultRelease();
+    }
     el.empty();
     const heading = new Setting(el)
       .setName(this.pageTitle())
@@ -528,12 +542,16 @@ class Page extends CompatibleSettingsTab {
       }
       if (recentReleases(this.releases).length) {
         const recent = recentReleases(this.releases);
-        if (!recent.some((r) => r.version === this.selected))
-          this.selected = recent[0].version;
+        this.selectDefaultRelease();
         const choices = new Setting(el)
           .setName("历史版本")
           .setClass("pmcn-release-picker");
         choices.addDropdown((d) => {
+          if (!this.selected)
+            d.selectEl.createEl("option", {
+              text: "请选择版本",
+              attr: { value: "" },
+            });
           for (const [channel, label] of [
             ["Stable", "稳定版"],
             ["Alpha", "测试版"],
@@ -549,7 +567,10 @@ class Page extends CompatibleSettingsTab {
           }
           d.setValue(this.selected)
             .setDisabled(this.working)
-            .onChange((v) => (this.selected = v));
+            .onChange((v) => {
+              this.selected = v;
+              this.manualSelection = true;
+            });
         });
         this.button(choices, "安装所选版本", async () => {
           const r = this.releases.find((r) => r.version === this.selected);
@@ -587,9 +608,7 @@ class Page extends CompatibleSettingsTab {
         : this.releases.filter((r) => r.channel === "Stable");
     this.releases = [...nextAlpha, ...nextStable];
     this.pm.state.wujieReleases = this.releases;
-    const recent = recentReleases(this.releases);
-    if (!recent.some((r) => r.version === this.selected))
-      this.selected = recent[0]?.version || "";
+    this.selectDefaultRelease();
     this.alphaSourceWarning =
       alpha.status === "rejected"
         ? "Alpha 刷新失败：" + String(alpha.reason)
@@ -603,7 +622,6 @@ class Page extends CompatibleSettingsTab {
     );
   }
   async refreshAlphaOnOpen(generation: number) {
-    const selection = this.selected;
     try {
       const alpha = await loadSiteAlpha(this.pm.net);
       if (!this.pageVisible || generation !== this.openGeneration) return;
@@ -613,11 +631,7 @@ class Page extends CompatibleSettingsTab {
         ...this.releases.filter((r) => r.channel === "Stable"),
       ];
       this.pm.state.wujieReleases = this.releases;
-      if (
-        this.selected === selection ||
-        !this.releases.some((r) => r.version === this.selected)
-      )
-        this.selected = recentReleases(this.releases)[0]?.version || "";
+      this.selectDefaultRelease();
       if (!this.working) {
         try {
           await this.pm.save();
