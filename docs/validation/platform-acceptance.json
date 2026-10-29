@@ -1,11 +1,11 @@
 {
-  "pluginVersion": "0.1.19",
+  "pluginVersion": "0.1.20",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.19",
+    "pluginVersion": "0.1.20",
     "date": "2026-10-29",
     "maintainerApproved": true,
-    "instruction": "你先发布，后面我统一测试；把这次文案修改也发布一个新版本，同步到社区。"
+    "instruction": "你先发布，后面我统一测试；新地址能正常读取就发布一个新版本，并确认社区同步成功。"
   },
   "devices": []
 }
