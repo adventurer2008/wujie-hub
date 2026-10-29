@@ -180,7 +180,7 @@ class Page extends CompatibleSettingsTab {
     new Setting(el)
       .setName(this.pm.manifest.name)
       .setDesc(
-        "插件安装中心 · 在国内网络环境下，便捷搜索、安装和升级社区插件，管理无界同步版本与本机代码回退。",
+        "插件安装中心 · 在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。",
       )
       .setHeading();
     if (this.status) el.createDiv({ cls: "pmcn-status", text: this.status });
