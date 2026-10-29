@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.17
+# Wujie Hub — 0.1.18
 
 插件安装中心
 
