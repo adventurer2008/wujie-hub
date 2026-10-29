@@ -181,12 +181,13 @@ class Page extends CompatibleSettingsTab {
     this.pageVisible = true;
     if (opening) this.openGeneration++;
     el.empty();
-    new Setting(el)
+    const heading = new Setting(el)
       .setName(this.pageTitle())
-      .setDesc(
-        "插件安装中心 · 在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。",
-      )
+      .setDesc("插件安装中心")
       .setHeading();
+    heading.descEl.createDiv({
+      text: "在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。",
+    });
     if (this.status) el.createDiv({ cls: "pmcn-status", text: this.status });
 
     const p = manager(this.app);
