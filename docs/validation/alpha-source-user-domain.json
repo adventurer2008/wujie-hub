@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-29",
+  "requestedDownloadSite": "https://user.wujiesync.cc/download/",
+  "configuredFeed": "https://user.wujiesync.cc/download/alpha/releases.json",
+  "feedPathBasis": "Retain the existing alpha/releases.json feed layout under the maintainer-provided download site.",
+  "liveValidation": "passed-via-browser",
+  "feedReleaseCount": 7,
+  "latestAlpha": "1.1.2-alpha.7",
+  "verification": "Chrome read the download homepage, full Alpha JSON feed and latest manifest. Downloaded the linked latest Alpha ZIP and verified its SHA-256 and all three enclosed release files against the feed. No plugin installation performed.",
+  "packageHost": "sync.wujiesync.cc",
+  "packageUrlPolicy": "Retain HTTPS file URLs supplied by the feed; changing the feed host does not rewrite its package URLs.",
+  "localTransportLimitation": "Invoke-WebRequest, curl and Python still encounter TLS EOF on this workstation. Browser verification succeeded; this does not establish connectivity from the user's company network."
+}

@@ -23,8 +23,9 @@ def prepare(root):
         release = json.loads(metadata.read_text(encoding='utf-8-sig'))
         if release.get('id') != 'wujie-sync' or release.get('version') != directory.name or release.get('channel') != 'Alpha':
             raise ValueError('Alpha identity mismatch: ' + directory.name)
-        expected_base = 'https://sync.wujiesync.cc/download/alpha/' + directory.name + '/'
-        if release.get('baseUrl') != expected_base:
+        expected_base = 'https://user.wujiesync.cc/download/alpha/' + directory.name + '/'
+        legacy_base = 'https://sync.wujiesync.cc/download/alpha/' + directory.name + '/'
+        if release.get('baseUrl') not in (expected_base, legacy_base):
             raise ValueError('Unexpected download base: ' + directory.name)
         for filename in ['manifest.json', 'main.js', 'styles.css']:
             file = directory / filename
@@ -36,6 +37,11 @@ def prepare(root):
         manifest = json.loads((directory / 'manifest.json').read_text(encoding='utf-8-sig'))
         if manifest.get('id') != 'wujie-sync' or manifest.get('version') != directory.name:
             raise ValueError('Manifest mismatch: ' + directory.name)
+        # Keep immutable version metadata intact; publish indexes on the new host.
+        release['baseUrl'] = expected_base
+        for key in ('zipUrl', 'checksumUrl'):
+            if isinstance(release.get(key), str) and release[key].startswith(legacy_base):
+                release[key] = expected_base + release[key][len(legacy_base):]
         releases.append(release)
     if not releases:
         raise ValueError('No complete Alpha versions')

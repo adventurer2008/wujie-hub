@@ -1,14 +1,33 @@
-import historyCache from "./wujie-history.json";
 import { Bundle, FILES } from "./core";
 import { Network } from "./network";
 import { record } from "./json";
 export const WUJIE_REPO = "adventurer2008/obsidian-smart-sync-release-cn";
 export const WUJIE_DOWNLOAD_SITE = "https://user.wujiesync.cc/download/";
-export const WUJIE_LEGACY_DOWNLOAD_SITE = "https://sync.wujiesync.cc/download/";
 export const WUJIE_ALPHA_FEED = new URL(
   "alpha/releases.json",
   WUJIE_DOWNLOAD_SITE,
 ).href;
+// Also applies at download time so saved releases cannot retain the old host.
+function officialDownloadUrl(value: string, channel: string): string {
+  const url = new URL(value);
+  if (
+    (channel === "Alpha" || channel === "Stable") &&
+    url.origin === "https://sync.wujiesync.cc" &&
+    url.pathname.startsWith("/download/")
+  )
+    url.hostname = "user.wujiesync.cc";
+  const githubPrefix = "/" + WUJIE_REPO + "/releases/download/";
+  if (
+    channel === "Stable" &&
+    url.origin === "https://github.com" &&
+    url.pathname.startsWith(githubPrefix)
+  ) {
+    url.hostname = "user.wujiesync.cc";
+    url.pathname =
+      "/download/stable/" + url.pathname.slice(githubPrefix.length);
+  }
+  return url.href;
+}
 export interface WujieRelease {
   version: string;
   channel: "Alpha" | "Beta" | "Stable";
@@ -59,16 +78,21 @@ export function parseSiteFeed(
       ? "Alpha"
       : /beta/i.test(label)
         ? "Beta"
-        : /^\d+\.\d+\.\d+$/.test(version) ? "Stable" : null;
+        : /^\d+\.\d+\.\d+$/.test(version) && entry.channel === "Stable"
+          ? "Stable"
+          : null;
     if (!channel) return [];
-    const baseUrl = new URL(
-      typeof entry.baseUrl === "string"
-        ? entry.baseUrl
-        : typeof entry.base_url === "string"
-          ? entry.base_url
-          : "./",
-      metadataUrl,
-    ).href;
+    const baseUrl = officialDownloadUrl(
+      new URL(
+        typeof entry.baseUrl === "string"
+          ? entry.baseUrl
+          : typeof entry.base_url === "string"
+            ? entry.base_url
+            : "./",
+        metadataUrl,
+      ).href,
+      channel,
+    );
     const sha256: Record<string, string> = {},
       fileUrls: Record<string, string> = {};
     for (const file of FILES) {
@@ -92,7 +116,7 @@ export function parseSiteFeed(
         baseUrl,
       );
       if (url.protocol !== "https:") return [];
-      fileUrls[file] = url.href;
+      fileUrls[file] = officialDownloadUrl(url.href, channel);
     }
     const publishedAt =
       entry.publishedAt || entry.published_at || entry.releasedAt;
@@ -110,16 +134,10 @@ export function parseSiteFeed(
   });
 }
 export async function loadSiteAlpha(net: Network): Promise<WujieRelease[]> {
-  const urls = [WUJIE_ALPHA_FEED, new URL("alpha/releases.json", WUJIE_LEGACY_DOWNLOAD_SITE).href];
-  let failure: unknown;
-  for (const url of urls) {
-    try {
-      const releases = parseSiteFeed(await net.json<unknown>(url), url);
-      if (!releases.length) throw Error("下载站尚无可识别的 Alpha 安装清单");
-      return releases;
-    } catch (error) { failure = error; }
-  }
-  throw failure;
+  const feed = await net.json<unknown>(WUJIE_ALPHA_FEED);
+  const releases = parseSiteFeed(feed, WUJIE_ALPHA_FEED);
+  if (!releases.length) throw Error("下载站尚无可识别的 Alpha 安装清单");
+  return releases;
 }
 interface GithubRelease {
   tag_name: string;
@@ -179,40 +197,14 @@ export async function loadWujieReleases(
   net: Network,
   feedUrl?: string,
 ): Promise<WujieRelease[]> {
-  if (feedUrl) {
-    const feed = await net.json<{ releases: WujieRelease[] }>(feedUrl);
-    if (!Array.isArray(feed.releases)) throw Error("版本清单格式错误");
-    return feed.releases;
-  }
   net.wujieHistoryCacheUsed = false;
-  // CHG-20261029-UNIFIED-DOWNLOAD: prefer validated site stable releases.
-  // Existing Github/history fallback remains available if the site is unavailable.
-  for (const base of [WUJIE_DOWNLOAD_SITE, WUJIE_LEGACY_DOWNLOAD_SITE]) {
-    try {
-      const metadataUrl = new URL("releases.json", base).href;
-      const stable = parseSiteFeed(await net.json<unknown>(metadataUrl), metadataUrl)
-        .filter((release) => release.channel === "Stable");
-      if (stable.length) return stable;
-    } catch { /* Continue to the legacy source and existing Github fallback. */ }
-  }
-  try {
-    const all: GithubRelease[] = [];
-    for (let page = 1; page <= 10; page++) {
-      const rows = await net.fastJson<GithubRelease[]>(
-        "https://api.github.com/repos/" +
-          WUJIE_REPO +
-          "/releases?per_page=100&page=" +
-          page,
-      );
-      if (!Array.isArray(rows)) throw Error("版本清单格式错误");
-      all.push(...rows);
-      if (rows.length < 100) break;
-    }
-    return parseReleases(all);
-  } catch {
-    net.wujieHistoryCacheUsed = true;
-    return historyCache.releases as WujieRelease[];
-  }
+  const url = feedUrl || new URL("releases.json", WUJIE_DOWNLOAD_SITE).href;
+  const feed = await net.json<unknown>(url);
+  const releases = parseSiteFeed(feed, url).filter(
+    (r) => r.channel === "Stable",
+  );
+  if (!releases.length) throw Error("下载站尚无可识别的稳定版安装清单");
+  return releases;
 }
 export async function hashes(bundle: Bundle): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
@@ -255,18 +247,18 @@ export async function downloadWujie(
       b[file] = null;
       continue;
     }
-    const url = release.fileUrls?.[file] ||
-        new URL(
-          file,
-          release.baseUrl.endsWith("/")
-            ? release.baseUrl
-            : release.baseUrl + "/",
-        ).href;
-    try { b[file] = await net.get(url); }
-    catch (error) {
-      if (!url.startsWith(WUJIE_DOWNLOAD_SITE)) throw error;
-      b[file] = await net.get(WUJIE_LEGACY_DOWNLOAD_SITE + url.slice(WUJIE_DOWNLOAD_SITE.length));
-    }
+    b[file] = await net.get(
+      officialDownloadUrl(
+        release.fileUrls?.[file] ||
+          new URL(
+            file,
+            release.baseUrl.endsWith("/")
+              ? release.baseUrl
+              : release.baseUrl + "/",
+          ).href,
+        release.channel,
+      ),
+    );
   }
   await verifyBundle(b, release.sha256);
   const manifest = record(JSON.parse(b["manifest.json"] || "null") as unknown);

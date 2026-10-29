@@ -15,11 +15,10 @@ test('stable loader prefers the user download site without Github requests', asy
   assert.equal(rows[0].channel, 'Stable');
   assert.deepEqual(requests, ['https://user.wujiesync.cc/download/releases.json']);
 });
-test('unavailable unified site retains legacy stable source', async () => {
+test('unavailable unified site does not silently change canonical download origin', async () => {
   const requests = [];
-  const rows = await loadWujieReleases({ json: async url => { requests.push(url); if (requests.length === 1) throw Error('synthetic unavailable'); return { releases: [stable] }; } });
-  assert.equal(rows.length, 1);
-  assert.equal(requests[1], 'https://sync.wujiesync.cc/download/releases.json');
+  await assert.rejects(loadWujieReleases({ json: async url => { requests.push(url); throw Error('synthetic unavailable'); } }), /unavailable/);
+  assert.deepEqual(requests, ['https://user.wujiesync.cc/download/releases.json']);
 });
 test('unified stable feed still rejects unsafe URLs and malformed digests', () => {
   for (const entry of [{ ...stable, baseUrl: 'http://unsafe.invalid/' }, { ...stable, sha256: { 'main.js': 'bad' } }])

@@ -1,8 +1,8 @@
-# Wujie Hub — 0.1.17
+# Wujie Hub — 0.1.21
 
 插件安装中心
 
-在国内网络环境下，便捷搜索、安装和升级社区插件，管理无界同步版本与本机代码回退。
+在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。
 
 ## Overview
 
@@ -23,7 +23,7 @@ The manager changes only `manifest.json`, `main.js`, and `styles.css` in target 
 
 - `raw.githubusercontent.com` supplies the official community plugin directory and plugin manifests; `api.github.com` supplies release metadata and available file digests; `github.com` supplies release downloads and may redirect them to GitHub's file distribution services.
 - Third-party proxies `ghfast.top`, `gh-proxy.com`, `gh.llkk.cc`, `ghproxy.net`, `gh.monlor.com`, and `wget.la` relay GitHub requests to improve access from China. Metadata checks try some sources in parallel; file downloads switch sources after failures. Proxies can see the GitHub URLs they relay. Ordinary community downloads do not have independently trusted publisher hashes; install only plugins and sources you trust. A matching Wujie digest establishes consistency with its metadata, not an author signature.
-- `user.wujiesync.cc` supplies the Wujie Sync Alpha feed and release files; `sync.wujiesync.cc` remains a network-failure fallback. Opening this plugin's settings page automatically refreshes that feed; manual update checks also request it. Release files are downloaded after confirmation.
+- `user.wujiesync.cc` supplies Wujie Sync Alpha and stable release feeds and installation files. Official Wujie downloads do not fall back to the old download host or GitHub. Opening this plugin's settings page automatically refreshes that feed; manual update checks also request it. Release files are downloaded after confirmation.
 - An optional custom HTTPS `feedUrl` supplies Wujie release metadata when configured. Confirmed installs request the HTTPS file URLs specified by that feed.
 
 Search terms are matched locally and are not uploaded as search parameters. Request URLs identify the requested repository, version, or file; remote services receive the request IP address and ordinary HTTP headers. This plugin requests catalogs, metadata, and release files. It does not upload notes, attachments, plugin settings, `data.json`, or rollback backups. Its cache, configuration, and backups remain local. The manager requires no account or payment; installed plugins have their own requirements and policies.
@@ -52,11 +52,11 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 专属区支持版本清单、指定版本安装、SHA-256、手动确认正常版本和本机 Rollback。正常版本只有点击“标记当前版本正常”才保存。回退只恢复代码，不恢复配置或远端数据迁移。
 
-默认读取官方国内发行仓库的公开 Release，无需编辑配置。点击无界同步“检查更新”后可选择历史版本；Alpha 测试版排在前面，最多显示最新3个，稳定版随后最多显示最新5个，共用“安装所选版本”按钮。正式版仍读取原国内发行库；Alpha 默认读取下载站的[完整发布清单](https://user.wujiesync.cc/download/alpha/releases.json)，不需要 GitHub 预发布，也不依赖本机累积旧 Alpha 记录。下载站成功返回后，以其版本列表为准。本机已确认的回退目标独立保留。已验证从完整清单读取1.1.2-alpha.2与1.1.2-alpha.1，安装alpha.2并离线回退成功；测试期间同步插件禁用，不代表 Alpha 功能或同步实机验收。也可由开发者配置自有 HTTPS 清单（feedUrl）。
+无界同步的 Alpha 和稳定版清单、安装文件统一从 [user.wujiesync.cc/download/](https://user.wujiesync.cc/download/) 读取。点击“检查更新”后，Alpha 最多显示最新3个，稳定版最多显示最新5个，共用“安装所选版本”按钮。Alpha 使用 alpha/releases.json，稳定版使用 releases.json；清单或本机缓存中的旧官方域名及 GitHub 稳定版地址会转换为新站地址，不回退旧域名或 GitHub 下载。文件仍需通过清单 SHA-256 校验；本机已确认的回退目标独立保留。可由开发者配置自有 HTTPS 清单（feedUrl）。
 
 在无界同步更多菜单中选择“标记当前版本正常”，确认后保存本机代码快照和摘要。随后出现“回退至版本号”，点击即可离线恢复代码，当前配置保留。安装其他版本不会覆盖回退目标。首次安装 Alpha 前若无目标，会要求你明确确认当前版本已验证正常。
 
-发行文件依据清单 SHA-256 核对；GitHub 元数据经加速代理取得时，这表示文件与该元数据一致，不等同于作者签名或独立的来源认证。回退不会撤销配置或云端数据迁移，不能保证任意旧版本兼容新版数据。
+发行文件依据清单 SHA-256 核对；摘要一致表示文件与清单一致，不等同于作者签名或独立的来源认证。回退不会撤销配置或云端数据迁移，不能保证任意旧版本兼容新版数据。
 
 清单结构：
 
@@ -97,7 +97,7 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 - `api.github.com`：查询社区插件的最新正式 Release，以及无界同步国内发行仓库的历史 Release 和文件摘要。
 - `github.com`：下载用户选择的插件发行文件；GitHub 可能将下载重定向至其文件分发服务。
 - 第三方 GitHub 加速代理 `ghfast.top`、`gh-proxy.com`、`gh.llkk.cc`、`ghproxy.net`、`gh.monlor.com`、`wget.la`：转发上述 GitHub 请求，以改善国内访问。版本查询会并行尝试部分来源，文件下载按来源失败切换。代理可看到所转发的 GitHub 地址；文件摘要一致不等同于作者签名。
-- `user.wujiesync.cc`（旧 sync 地址保留为网络失败回退）：每次打开本插件设置页时自动读取无界同步 Alpha 完整发布清单，手动检查更新也会读取；确认安装后下载该清单所列发行文件。
+- `user.wujiesync.cc`：提供无界同步 Alpha、稳定版清单及安装文件。每次打开设置页自动刷新 Alpha，手动检查更新刷新两种渠道；确认后从新站下载发行文件，不回退旧官方域名或 GitHub。
 - 可选的自定义 HTTPS `feedUrl`：配置后用于获取无界同步版本清单；确认安装后会请求清单指定的 HTTPS 文件地址。这些地址由清单提供方决定。
 
 搜索关键词在本机匹配，不作为搜索参数上传。请求的 URL 包含所查询的仓库、版本或文件路径，服务提供方可以接收到请求 IP 和常规 HTTP 请求头。当前代码只请求目录、版本元数据及发行文件，不上传笔记、附件、插件配置、`data.json` 或本机回退备份；缓存、配置和备份保存在本机。管理器不要求账号或付费；被安装插件自身的网络、账号和付费要求由对应插件说明。
@@ -110,13 +110,13 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 当前界面：进入页面不列社区插件；输入关键词后最多五条结果。已安装插件只保留同行检查更新及检查后有更新的列表。无界同步使用同样的名称、版本、作者和描述行；更多菜单可标记正常版本，已保存目标后主行显示一键回退按钮。
 
-0.1.9：Alpha 从下载站完整发布清单读取，管理器只展示最新3个；稳定版仍从 GitHub 渠道读取最新5个，限流时使用随包分发的已核验元数据。历史版本下拉按渠道分组，共用“安装所选版本”按钮；不再提供独立“安装最新 Alpha”按钮或累积本机旧 Alpha 记录。
+0.1.21：无界同步 Alpha 与最近5个稳定版均使用新下载站，包含旧缓存地址兼容转换；新站失败时明确提示，不通过旧站或 GitHub 下载。历史版本下拉按渠道分组，共用“安装所选版本”按钮；不再提供独立“安装最新 Alpha”按钮或累积本机旧 Alpha 记录。
 
 ## Alpha 发布工具
 
 `scripts/publish-alpha.ps1` 需要 PowerShell、SSH/scp、服务器端 Python 3.9+，以及自行配置的发布服务器、SSH 目标和密钥。服务器须已配置上传目录、下载站目录和既有发行清单；仓库不含凭据。脚本上传并校验发行文件后，通过 `scripts/update-alpha-index.py` 刷新完整 Alpha 清单、最新版本指针及合并清单，写入前备份清单。
 
-后续发布Alpha使用 scripts/publish-alpha.ps1，传入 PackageDirectory（三个插件发行文件所在目录）、RootTarget、IdentityFile。脚本自动生成版本信息和摘要、上传独立版本目录、执行服务端 scripts/update-alpha-index.py 更新完整清单。已发布版本不可覆盖；正式版入口、应用服务和用户配置不变。也可在完成目录上传后执行服务端更新工具。上传与清单更新需要发布账号及root维护权限，脚本不保存密钥。
+后续发布Alpha使用 scripts/publish-alpha.ps1，传入 PackageDirectory（三个插件发行文件所在目录）、RootTarget、IdentityFile。脚本自动生成版本信息和摘要、上传独立版本目录、执行服务端 scripts/update-alpha-index.py 更新完整清单。已发布版本不可覆盖；已有稳定版记录、应用服务和用户配置保持。也可在完成目录上传后执行服务端更新工具。上传与清单更新需要发布账号及root维护权限，脚本不保存密钥。
 
 0.1.10：每次进入设置页面自动后台读取下载站Alpha并更新下拉，打开时不查GitHub；无界同步的检查更新按钮同时刷新Alpha和稳定版。读取失败保留上次结果并提示。
 

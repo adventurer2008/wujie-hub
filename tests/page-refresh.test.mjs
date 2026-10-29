@@ -15,17 +15,57 @@ await build({
       name: "expose-page-for-test",
       setup(builder) {
         builder.onLoad({ filter: /src[\\/]main\.ts$/ }, async (args) => ({
-          contents: (await readFile(args.path, "utf8")).replace(
-            "class Page extends",
-            "export class Page extends",
-          ),
+          contents:
+            (await readFile(args.path, "utf8")).replace(
+              "class Page extends",
+              "export class Page extends",
+            ) +
+            '\nexport { TestElement } from "../tests/page-obsidian-stub";\n',
           loader: "ts",
         }));
       },
     },
   ],
 });
-const { Page } = await import("../test-output/page.mjs");
+const { Page, TestElement } = await import("../test-output/page.mjs");
+
+test("1.12 page renders both update buttons and Wujie while network is unavailable", () => {
+  let alphaRequests = 0;
+  const app = {
+    plugins: {
+      manifests: {},
+      plugins: {},
+      enabledPlugins: new Set(),
+      loadManifests() {},
+      enablePluginAndSave() {},
+      disablePluginAndSave() {},
+      unloadPlugin() {},
+    },
+  };
+  const page = new Page({
+    app,
+    manifest: { id: "wujie-hub", name: "Wujie Hub" },
+    state: { catalog: [] },
+    net: {
+      json() {
+        alphaRequests++;
+        return new Promise(() => {});
+      },
+    },
+  });
+  const root = new TestElement();
+  page.renderPage(root);
+  const texts = [];
+  const walk = (el) => {
+    texts.push(el.text);
+    el.children.forEach(walk);
+  };
+  walk(root);
+  assert.ok(texts.includes("已安装插件"));
+  assert.ok(texts.includes("无界同步"));
+  assert.equal(texts.filter((text) => text === "检查更新").length, 2);
+  assert.equal(alphaRequests, 1);
+});
 
 test("Obsidian 1.12 renders and refreshes without invoking the 1.13 API", async () => {
   const page = Object.create(Page.prototype);
@@ -136,7 +176,14 @@ test("manual refresh updates both channels", async () => {
     calls.push(url);
     return {
       releases: url.includes("stable.json")
-        ? [{ version: "1.1.2", channel: "Stable" }]
+        ? [
+            {
+              version: "1.1.2",
+              channel: "Stable",
+              baseUrl: "https://user.wujiesync.cc/download/stable/1.1.2/",
+              sha256: entry.sha256,
+            },
+          ]
         : [entry],
     };
   };

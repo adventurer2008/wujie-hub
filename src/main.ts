@@ -180,7 +180,7 @@ class Page extends CompatibleSettingsTab {
     new Setting(el)
       .setName(this.pm.manifest.name)
       .setDesc(
-        "插件安装中心 · 在国内网络环境下，便捷搜索、安装和升级社区插件，管理无界同步版本与本机代码回退。",
+        "插件安装中心 · 在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。",
       )
       .setHeading();
     if (this.status) el.createDiv({ cls: "pmcn-status", text: this.status });
@@ -359,7 +359,8 @@ class Page extends CompatibleSettingsTab {
     loadCatalog();
     const updateControls = new Setting(el)
       .setName("已安装插件")
-      .setClass("pmcn-update-controls pmcn-section-heading");
+      .setClass("pmcn-update-controls")
+      .setClass("pmcn-section-heading");
     this.button(updateControls, "检查更新", async () => {
       await p.loadManifests();
       if (!this.pm.state.catalog.length)
@@ -446,9 +447,9 @@ class Page extends CompatibleSettingsTab {
       const el = wujieContainer;
       el.empty();
       const current = p.manifests["wujie-sync"];
-      const wujieRow = new Setting(el).setClass(
-        "pmcn-installed-row pmcn-wujie-row",
-      );
+      const wujieRow = new Setting(el)
+        .setClass("pmcn-installed-row")
+        .setClass("pmcn-wujie-row");
       wujieRow.nameEl.createSpan({ cls: "pmcn-plugin-name", text: "无界同步" });
       wujieRow.nameEl.createSpan({
         cls: "pmcn-plugin-meta",
