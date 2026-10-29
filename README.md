@@ -2,19 +2,15 @@
 
 插件安装中心
 
-这是同一维护者发布的新条目 `wujie-hub`，独立仓库为 `adventurer2008/wujie-hub`。
-
 在国内网络环境下，便捷搜索、安装和升级社区插件，管理无界同步版本与本机代码回退。
 
 ## Overview
 
-Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its single settings page also provides a dedicated Wujie Sync section for selecting stable and Alpha releases, checking SHA-256 digests, and restoring a local code version that the user has explicitly confirmed as working. The interface is in Chinese. The plugin ID and installation folder are `wujie-hub`.
-
-This separately submitted successor is maintained by the same owner as [the legacy project](https://github.com/adventurer2008/plugin-manager-cn), with source history, copyright and Apache License 2.0 preserved. The legacy Community entry remains available for existing users; it will not be archived automatically. Switching requires a separate installation.
+Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its single settings page also provides a dedicated Wujie Sync section for selecting stable and Alpha releases, checking SHA-256 digests, and restoring a local code version that the user has explicitly confirmed as working. The interface is in Chinese.
 
 ## Installation and usage
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [Wujie Hub release](https://github.com/adventurer2008/wujie-hub/releases/latest). This is a separately submitted successor with ID `wujie-hub`. The legacy 0.1.16 package uses `plugin-manager-cn`; do not put its files in the new folder.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [Wujie Hub release](https://github.com/adventurer2008/wujie-hub/releases/latest).
 2. For manual installation, place those three files in `<config-dir>/plugins/wujie-hub/`, normally `.obsidian/plugins/wujie-hub/`. Preserve any existing `data.json` and all other files when replacing release files.
 3. In Obsidian, open **Settings → Community plugins**, enable **Wujie Hub**, and open its settings page. You can also run the **打开插件管理** command (Open plugin manager).
 4. Enter a plugin name, description, or ID in the search field. Select **安装** (Install), review the version and trust prompt, and confirm the download. New plugins remain disabled until you enable them in Obsidian's Community plugins settings.
@@ -40,11 +36,9 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 单页 Obsidian 社区插件管理器，中文名为“插件安装中心”。
 
-仓库名、包名和插件 ID 保持 `wujie-hub`，插件显示名称为 `Wujie Hub`。
-
 ## 安装与使用
 
-1. 从 [Wujie Hub 最新发行版](https://github.com/adventurer2008/wujie-hub/releases/latest)下载 `main.js`、`manifest.json`、`styles.css`。新条目 ID 为 `wujie-hub`；旧版0.1.16是 `plugin-manager-cn`，不要混用发行文件与目录。
+1. 从 [Wujie Hub 最新发行版](https://github.com/adventurer2008/wujie-hub/releases/latest)下载 `main.js`、`manifest.json`、`styles.css`。
 2. 手动安装时，将三个文件放入 `<配置目录>/plugins/wujie-hub/`，配置目录通常是 `.obsidian`。仅替换这三个发行文件，保留已有 `data.json` 及其他文件。
 3. 在 Obsidian 第三方插件设置中启用 Wujie Hub，然后打开它的设置页面。也可使用“打开插件管理”命令。
 4. 搜索名称、描述或 ID，输入即筛选，点击“安装”确认版本后下载。已安装的搜索结果只显示状态，不提供启用或卸载功能。新装插件默认禁用，请到官方第三方插件设置中启用。更新保留原启用状态。
