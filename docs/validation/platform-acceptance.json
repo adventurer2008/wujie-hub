@@ -1,8 +1,8 @@
 {
-  "pluginVersion": "0.1.18",
+  "pluginVersion": "0.1.19",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.18",
+    "pluginVersion": "0.1.19",
     "date": "2026-10-29",
     "maintainerApproved": true,
     "instruction": "你先发布，后面我统一测试；把这次文案修改也发布一个新版本，同步到社区。"

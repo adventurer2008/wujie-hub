@@ -359,7 +359,8 @@ class Page extends CompatibleSettingsTab {
     loadCatalog();
     const updateControls = new Setting(el)
       .setName("已安装插件")
-      .setClass("pmcn-update-controls pmcn-section-heading");
+      .setClass("pmcn-update-controls")
+      .setClass("pmcn-section-heading");
     this.button(updateControls, "检查更新", async () => {
       await p.loadManifests();
       if (!this.pm.state.catalog.length)
@@ -446,9 +447,9 @@ class Page extends CompatibleSettingsTab {
       const el = wujieContainer;
       el.empty();
       const current = p.manifests["wujie-sync"];
-      const wujieRow = new Setting(el).setClass(
-        "pmcn-installed-row pmcn-wujie-row",
-      );
+      const wujieRow = new Setting(el)
+        .setClass("pmcn-installed-row")
+        .setClass("pmcn-wujie-row");
       wujieRow.nameEl.createSpan({ cls: "pmcn-plugin-name", text: "无界同步" });
       wujieRow.nameEl.createSpan({
         cls: "pmcn-plugin-meta",

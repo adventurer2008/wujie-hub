@@ -7,7 +7,7 @@
     "typescript": "^7.0.2"
   },
   "name": "wujie-hub",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "private": true,
   "scripts": {
     "check:compat": "tsc --noEmit -p tsconfig.compat-1.12.json",
