@@ -533,8 +533,8 @@ class Page extends CompatibleSettingsTab {
           .setClass("pmcn-release-picker");
         choices.addDropdown((d) => {
           for (const [channel, label] of [
-            ["Alpha", "Alpha 测试版"],
             ["Stable", "稳定版"],
+            ["Alpha", "测试版"],
           ] as const) {
             const versions = recent.filter((r) => r.channel === channel);
             if (!versions.length) continue;
