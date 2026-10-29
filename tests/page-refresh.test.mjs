@@ -173,7 +173,14 @@ test("manual refresh updates both channels", async () => {
     calls.push(url);
     return {
       releases: url.includes("stable.json")
-        ? [{ version: "1.1.2", channel: "Stable" }]
+        ? [
+            {
+              version: "1.1.2",
+              channel: "Stable",
+              baseUrl: "https://user.wujiesync.cc/download/stable/1.1.2/",
+              sha256: entry.sha256,
+            },
+          ]
         : [entry],
     };
   };

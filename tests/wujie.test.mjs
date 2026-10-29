@@ -13,19 +13,112 @@ const { parseReleases, hashes, verifyBundle, downloadWujie } =
   await import("../test-output/wujie.mjs");
 const { recentReleases, parseSiteFeed, loadSiteAlpha } =
   await import("../test-output/wujie.mjs");
-test("GitHub rate limiting retains five verified stable releases", async () => {
-  const { loadWujieReleases } = await import("../test-output/wujie.mjs");
+
+test("Alpha feed and cached downloads use the new official host without old-host fallback", async () => {
+  const bundle = {
+    "manifest.json": '{"id":"wujie-sync","version":"1.2.0-alpha.1"}',
+    "main.js": "Alpha test fixture",
+    "styles.css": "body{}",
+  };
+  const baseUrl = "https://sync.wujiesync.cc/download/alpha/1.2.0-alpha.1/";
+  const entry = {
+    version: "1.2.0-alpha.1",
+    channel: "Alpha",
+    baseUrl,
+    sha256: await hashes(bundle),
+    files: Object.fromEntries(
+      Object.keys(bundle).map((file) => [file, { url: baseUrl + file }]),
+    ),
+  };
+  const [parsed] = parseSiteFeed(
+    { releases: [entry] },
+    "https://user.wujiesync.cc/download/alpha/releases.json",
+  );
+  assert.equal(new URL(parsed.baseUrl).hostname, "user.wujiesync.cc");
+  assert.ok(
+    Object.values(parsed.fileUrls).every(
+      (url) => new URL(url).hostname === "user.wujiesync.cc",
+    ),
+  );
+  const requested = [];
   const net = {
+    get: async (url) => {
+      requested.push(url);
+      assert.equal(new URL(url).hostname, "user.wujiesync.cc");
+      return bundle[new URL(url).pathname.split("/").pop()];
+    },
+  };
+  // Old data.json may retain either an old base URL or explicit per-file URLs.
+  for (const fileUrls of [
+    undefined,
+    Object.fromEntries(
+      Object.keys(bundle).map((file) => [file, baseUrl + file]),
+    ),
+  ]) {
+    assert.deepEqual(await downloadWujie(net, { ...entry, fileUrls }), bundle);
+  }
+  assert.equal(requested.length, 6);
+  const failed = [];
+  await assert.rejects(
+    downloadWujie(
+      {
+        get: async (url) => {
+          failed.push(url);
+          throw Error("offline");
+        },
+      },
+      entry,
+    ),
+    /offline/,
+  );
+  assert.equal(failed.length, 1);
+  assert.equal(new URL(failed[0]).hostname, "user.wujiesync.cc");
+});
+test("stable metadata and cached GitHub downloads use the new site with no GitHub fallback", async () => {
+  const { loadWujieReleases } = await import("../test-output/wujie.mjs");
+  const bundle = {
+    "manifest.json": '{"id":"wujie-sync","version":"1.1.1"}',
+    "main.js": "fixture",
+    "styles.css": null,
+  };
+  const entry = {
+    version: "1.1.1",
+    channel: "Stable",
+    baseUrl:
+      "https://github.com/adventurer2008/obsidian-smart-sync-release-cn/releases/download/1.1.1/",
+    sha256: await hashes(bundle),
+  };
+  const net = {
+    json: async (url) => {
+      assert.equal(url, "https://user.wujiesync.cc/download/releases.json");
+      return { releases: [entry] };
+    },
+    get: async (url) => {
+      assert.ok(
+        url.startsWith("https://user.wujiesync.cc/download/stable/1.1.1/"),
+      );
+      return bundle[new URL(url).pathname.split("/").pop()];
+    },
     fastJson: async () => {
-      throw Error("rate limited");
+      assert.fail("GitHub must not be queried");
     },
   };
   const releases = await loadWujieReleases(net);
-  assert.equal(releases.length, 5);
+  assert.equal(releases.length, 1);
   assert.ok(
     releases.every((r) => r.channel === "Stable" && r.sha256["main.js"]),
   );
-  assert.equal(net.wujieHistoryCacheUsed, true);
+  assert.equal(net.wujieHistoryCacheUsed, false);
+  assert.deepEqual(await downloadWujie(net, entry), bundle);
+  await assert.rejects(
+    loadWujieReleases({
+      ...net,
+      json: async () => {
+        throw Error("site offline");
+      },
+    }),
+    /site offline/,
+  );
 });
 test("history shows the newest five without mutating the full inventory", () => {
   const rows = Array.from({ length: 8 }, (_, i) => ({
@@ -88,7 +181,10 @@ test("download-site metadata resolves plugin files and rejects HTTP file URLs", 
   const net = {
     get: async () => '<a href="alpha/versions.json">Alpha 清单</a>',
     json: async (url) => {
-      assert.equal(url, "https://user.wujiesync.cc/download/alpha/releases.json");
+      assert.equal(
+        url,
+        "https://user.wujiesync.cc/download/alpha/releases.json",
+      );
       return feed;
     },
   };

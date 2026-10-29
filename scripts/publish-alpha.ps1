@@ -17,7 +17,7 @@ foreach ($name in @('manifest.json','main.js','styles.css')) {
     $hashes[$name] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
     Copy-Item -LiteralPath $file -Destination (Join-Path $stage $name)
 }
-$release = @{id='wujie-sync';version=$version;channel='Alpha';baseUrl="https://sync.wujiesync.cc/download/alpha/$version/";sha256=$hashes;rollbackSafe=$false;publishedAt=[DateTimeOffset]::UtcNow.ToString('o')}
+$release = @{id='wujie-sync';version=$version;channel='Alpha';baseUrl="https://user.wujiesync.cc/download/alpha/$version/";sha256=$hashes;rollbackSafe=$false;publishedAt=[DateTimeOffset]::UtcNow.ToString('o')}
 [IO.File]::WriteAllText((Join-Path $stage 'release.json'),($release | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 $remote = "/home/app/wujie-alpha-upload/$version"
 & ssh $UploadTarget "mkdir -p $remote"

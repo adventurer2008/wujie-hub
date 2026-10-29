@@ -54,6 +54,15 @@ test("directory index includes every verified Alpha, preserves stable and reject
     index.releases.map((r) => r.version),
     ["1.1.2-alpha.10", "1.1.2-alpha.2"],
   );
+  assert.ok(
+    index.releases.every((r) =>
+      r.baseUrl.startsWith("https://user.wujiesync.cc/download/alpha/"),
+    ),
+  );
+  const original = JSON.parse(
+    await fs.readFile(root + "/alpha/1.1.2-alpha.2/release.json", "utf8"),
+  );
+  assert.ok(original.baseUrl.startsWith("https://sync.wujiesync.cc/"));
   const combined = JSON.parse(
     await fs.readFile(root + "/releases.json", "utf8"),
   );
