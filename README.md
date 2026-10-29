@@ -23,7 +23,7 @@ The manager changes only `manifest.json`, `main.js`, and `styles.css` in target 
 
 - `raw.githubusercontent.com` supplies the official community plugin directory and plugin manifests; `api.github.com` supplies release metadata and available file digests; `github.com` supplies release downloads and may redirect them to GitHub's file distribution services.
 - Third-party proxies `ghfast.top`, `gh-proxy.com`, `gh.llkk.cc`, `ghproxy.net`, `gh.monlor.com`, and `wget.la` relay GitHub requests to improve access from China. Metadata checks try some sources in parallel; file downloads switch sources after failures. Proxies can see the GitHub URLs they relay. Ordinary community downloads do not have independently trusted publisher hashes; install only plugins and sources you trust. A matching Wujie digest establishes consistency with its metadata, not an author signature.
-- `sync.wujiesync.cc` supplies the Wujie Sync Alpha feed. Opening this plugin's settings page automatically refreshes that feed; manual update checks also request it. Release files are downloaded after confirmation.
+- `user.wujiesync.cc` supplies the Wujie Sync Alpha feed and release files; `sync.wujiesync.cc` remains a network-failure fallback. Opening this plugin's settings page automatically refreshes that feed; manual update checks also request it. Release files are downloaded after confirmation.
 - An optional custom HTTPS `feedUrl` supplies Wujie release metadata when configured. Confirmed installs request the HTTPS file URLs specified by that feed.
 
 Search terms are matched locally and are not uploaded as search parameters. Request URLs identify the requested repository, version, or file; remote services receive the request IP address and ordinary HTTP headers. This plugin requests catalogs, metadata, and release files. It does not upload notes, attachments, plugin settings, `data.json`, or rollback backups. Its cache, configuration, and backups remain local. The manager requires no account or payment; installed plugins have their own requirements and policies.
@@ -52,7 +52,7 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 专属区支持版本清单、指定版本安装、SHA-256、手动确认正常版本和本机 Rollback。正常版本只有点击“标记当前版本正常”才保存。回退只恢复代码，不恢复配置或远端数据迁移。
 
-默认读取官方国内发行仓库的公开 Release，无需编辑配置。点击无界同步“检查更新”后可选择历史版本；Alpha 测试版排在前面，最多显示最新3个，稳定版随后最多显示最新5个，共用“安装所选版本”按钮。正式版仍读取原国内发行库；Alpha 默认读取下载站的[完整发布清单](https://sync.wujiesync.cc/download/alpha/releases.json)，不需要 GitHub 预发布，也不依赖本机累积旧 Alpha 记录。下载站成功返回后，以其版本列表为准。本机已确认的回退目标独立保留。已验证从完整清单读取1.1.2-alpha.2与1.1.2-alpha.1，安装alpha.2并离线回退成功；测试期间同步插件禁用，不代表 Alpha 功能或同步实机验收。也可由开发者配置自有 HTTPS 清单（feedUrl）。
+默认读取官方国内发行仓库的公开 Release，无需编辑配置。点击无界同步“检查更新”后可选择历史版本；Alpha 测试版排在前面，最多显示最新3个，稳定版随后最多显示最新5个，共用“安装所选版本”按钮。正式版仍读取原国内发行库；Alpha 默认读取下载站的[完整发布清单](https://user.wujiesync.cc/download/alpha/releases.json)，不需要 GitHub 预发布，也不依赖本机累积旧 Alpha 记录。下载站成功返回后，以其版本列表为准。本机已确认的回退目标独立保留。已验证从完整清单读取1.1.2-alpha.2与1.1.2-alpha.1，安装alpha.2并离线回退成功；测试期间同步插件禁用，不代表 Alpha 功能或同步实机验收。也可由开发者配置自有 HTTPS 清单（feedUrl）。
 
 在无界同步更多菜单中选择“标记当前版本正常”，确认后保存本机代码快照和摘要。随后出现“回退至版本号”，点击即可离线恢复代码，当前配置保留。安装其他版本不会覆盖回退目标。首次安装 Alpha 前若无目标，会要求你明确确认当前版本已验证正常。
 
@@ -97,7 +97,7 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 - `api.github.com`：查询社区插件的最新正式 Release，以及无界同步国内发行仓库的历史 Release 和文件摘要。
 - `github.com`：下载用户选择的插件发行文件；GitHub 可能将下载重定向至其文件分发服务。
 - 第三方 GitHub 加速代理 `ghfast.top`、`gh-proxy.com`、`gh.llkk.cc`、`ghproxy.net`、`gh.monlor.com`、`wget.la`：转发上述 GitHub 请求，以改善国内访问。版本查询会并行尝试部分来源，文件下载按来源失败切换。代理可看到所转发的 GitHub 地址；文件摘要一致不等同于作者签名。
-- `sync.wujiesync.cc`：每次打开本插件设置页时自动读取无界同步 Alpha 完整发布清单，手动检查更新也会读取；确认安装后下载该清单所列发行文件。
+- `user.wujiesync.cc`（旧 sync 地址保留为网络失败回退）：每次打开本插件设置页时自动读取无界同步 Alpha 完整发布清单，手动检查更新也会读取；确认安装后下载该清单所列发行文件。
 - 可选的自定义 HTTPS `feedUrl`：配置后用于获取无界同步版本清单；确认安装后会请求清单指定的 HTTPS 文件地址。这些地址由清单提供方决定。
 
 搜索关键词在本机匹配，不作为搜索参数上传。请求的 URL 包含所查询的仓库、版本或文件路径，服务提供方可以接收到请求 IP 和常规 HTTP 请求头。当前代码只请求目录、版本元数据及发行文件，不上传笔记、附件、插件配置、`data.json` 或本机回退备份；缓存、配置和备份保存在本机。管理器不要求账号或付费；被安装插件自身的网络、账号和付费要求由对应插件说明。

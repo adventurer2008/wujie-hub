@@ -3,7 +3,8 @@ import { Bundle, FILES } from "./core";
 import { Network } from "./network";
 import { record } from "./json";
 export const WUJIE_REPO = "adventurer2008/obsidian-smart-sync-release-cn";
-export const WUJIE_DOWNLOAD_SITE = "https://sync.wujiesync.cc/download/";
+export const WUJIE_DOWNLOAD_SITE = "https://user.wujiesync.cc/download/";
+export const WUJIE_LEGACY_DOWNLOAD_SITE = "https://sync.wujiesync.cc/download/";
 export const WUJIE_ALPHA_FEED = new URL(
   "alpha/releases.json",
   WUJIE_DOWNLOAD_SITE,
@@ -48,7 +49,7 @@ export function parseSiteFeed(
     const version = entry.version;
     if (
       typeof version !== "string" ||
-      !/^\d+\.\d+\.\d+-[\w.-]+$/.test(version) ||
+      !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version) ||
       (entry.id && entry.id !== "wujie-sync")
     )
       return [];
@@ -58,7 +59,7 @@ export function parseSiteFeed(
       ? "Alpha"
       : /beta/i.test(label)
         ? "Beta"
-        : null;
+        : /^\d+\.\d+\.\d+$/.test(version) ? "Stable" : null;
     if (!channel) return [];
     const baseUrl = new URL(
       typeof entry.baseUrl === "string"
@@ -109,10 +110,16 @@ export function parseSiteFeed(
   });
 }
 export async function loadSiteAlpha(net: Network): Promise<WujieRelease[]> {
-  const feed = await net.json<unknown>(WUJIE_ALPHA_FEED);
-  const releases = parseSiteFeed(feed, WUJIE_ALPHA_FEED);
-  if (!releases.length) throw Error("下载站尚无可识别的 Alpha 安装清单");
-  return releases;
+  const urls = [WUJIE_ALPHA_FEED, new URL("alpha/releases.json", WUJIE_LEGACY_DOWNLOAD_SITE).href];
+  let failure: unknown;
+  for (const url of urls) {
+    try {
+      const releases = parseSiteFeed(await net.json<unknown>(url), url);
+      if (!releases.length) throw Error("下载站尚无可识别的 Alpha 安装清单");
+      return releases;
+    } catch (error) { failure = error; }
+  }
+  throw failure;
 }
 interface GithubRelease {
   tag_name: string;
@@ -178,6 +185,16 @@ export async function loadWujieReleases(
     return feed.releases;
   }
   net.wujieHistoryCacheUsed = false;
+  // CHG-20261029-UNIFIED-DOWNLOAD: prefer validated site stable releases.
+  // Existing Github/history fallback remains available if the site is unavailable.
+  for (const base of [WUJIE_DOWNLOAD_SITE, WUJIE_LEGACY_DOWNLOAD_SITE]) {
+    try {
+      const metadataUrl = new URL("releases.json", base).href;
+      const stable = parseSiteFeed(await net.json<unknown>(metadataUrl), metadataUrl)
+        .filter((release) => release.channel === "Stable");
+      if (stable.length) return stable;
+    } catch { /* Continue to the legacy source and existing Github fallback. */ }
+  }
   try {
     const all: GithubRelease[] = [];
     for (let page = 1; page <= 10; page++) {
@@ -238,15 +255,18 @@ export async function downloadWujie(
       b[file] = null;
       continue;
     }
-    b[file] = await net.get(
-      release.fileUrls?.[file] ||
+    const url = release.fileUrls?.[file] ||
         new URL(
           file,
           release.baseUrl.endsWith("/")
             ? release.baseUrl
             : release.baseUrl + "/",
-        ).href,
-    );
+        ).href;
+    try { b[file] = await net.get(url); }
+    catch (error) {
+      if (!url.startsWith(WUJIE_DOWNLOAD_SITE)) throw error;
+      b[file] = await net.get(WUJIE_LEGACY_DOWNLOAD_SITE + url.slice(WUJIE_DOWNLOAD_SITE.length));
+    }
   }
   await verifyBundle(b, release.sha256);
   const manifest = record(JSON.parse(b["manifest.json"] || "null") as unknown);

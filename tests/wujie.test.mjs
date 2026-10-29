@@ -13,6 +13,14 @@ const { parseReleases, hashes, verifyBundle, downloadWujie } =
   await import("../test-output/wujie.mjs");
 const { recentReleases, parseSiteFeed, loadSiteAlpha } =
   await import("../test-output/wujie.mjs");
+
+test("new user download feed is preferred and legacy metadata remains a network fallback", async () => {
+  const requests=[];
+  const feed={releases:[{version:"1.1.2-alpha.8",channel:"Alpha",baseUrl:"./1.1.2-alpha.8/",sha256:{"main.js":"a".repeat(64),"manifest.json":"b".repeat(64)}}]};
+  const releases=await loadSiteAlpha({json:async url=>{requests.push(url);if(url.startsWith("https://user."))throw Error("network unavailable");return feed;}});
+  assert.deepEqual(requests,["https://user.wujiesync.cc/download/alpha/releases.json","https://sync.wujiesync.cc/download/alpha/releases.json"]);
+  assert.equal(releases[0].fileUrls["main.js"],"https://sync.wujiesync.cc/download/alpha/1.1.2-alpha.8/main.js");
+});
 test("GitHub rate limiting retains five verified stable releases", async () => {
   const { loadWujieReleases } = await import("../test-output/wujie.mjs");
   const net = {
@@ -174,4 +182,15 @@ test("numeric plugin version can belong to an explicitly labelled Alpha tag", as
     downloadWujie(net, { ...release, version: "1.3.0-alpha.1" }),
     /版本与安装包不匹配/,
   );
+});
+
+test("user file network failures use the legacy alias but digest mismatches never trigger fallback", async () => {
+  const bundle={"main.js":"fixture", "manifest.json":JSON.stringify({id:"wujie-sync",version:"1.1.2-alpha.8"}),"styles.css":null};
+  const release={version:"1.1.2-alpha.8",channel:"Alpha",baseUrl:"https://user.wujiesync.cc/download/alpha/1.1.2-alpha.8/",sha256:await hashes(bundle),rollbackSafe:false};
+  const requests=[];
+  const result=await downloadWujie({get:async url=>{requests.push(url);if(url.startsWith("https://user."))throw Error("network");return bundle[new URL(url).pathname.split("/").pop()];}},release);
+  assert.deepEqual(result,bundle);assert.ok(requests.some(url=>url.startsWith("https://sync.")));
+  const corrupt=[];
+  await assert.rejects(()=>downloadWujie({get:async url=>{corrupt.push(url);const file=new URL(url).pathname.split("/").pop();return bundle[file]+(file==="main.js"?"tamper":"");}},release),/校验失败/);
+  assert.ok(corrupt.every(url=>url.startsWith("https://user.")));
 });

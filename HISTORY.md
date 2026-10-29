@@ -152,3 +152,14 @@
 ## 2026-10-28 — 0.1.13 使用标准设置页标题
 
 - 修复社区源码扫描的阻断项：设置页标题改用 Obsidian Setting.setHeading()，保留原单页三部分布局与操作行为。
+
+
+## 2026-10-29 — CHG-20261029-PORTAL-INTEGRATION / 0.1.18-alpha.1
+用户要求随同步Alpha接入user下载域名。优先https://user.wujiesync.cc/download/，保留sync旧清单和同路径文件网络回退，SHA256及插件ID/版本校验保持，篡改不得走回退绕过校验。旧地址等全量上线运行两天、用户再次提出后再移除，不自动清理。不自安装或覆盖data.json；移动端仍需真机验收。
+
+## CHG-20261029-UNIFIED-DOWNLOAD
+用户要求后续稳定版与Alpha统一从user.wujiesync.cc/download/提供，Hub均可识别。站点清单解析器新增稳定版，稳定版读取优先user站根releases.json，保留旧域名及Github/历史缓存备用；Alpha独立清单路径不变。原data.json和非发行文件保持。代码尚待本项测试与Hub后续交付，不冒称当前已安装Hub完成升级。
+
+
+## 0.1.18 staging candidate — CHG-20261029-112-FULL-STAGING
+Requirements: collect all unpublished registered changes for full staging. Prefer user.wujiesync.cc download metadata/files, retain the old network-error fallback, and reject SHA-256 mismatch without fallback. Preserve serialized installation, release-file-only rollback and every target data.json. This is a real installer, not a preview; host/mobile physical acceptance remains unverified.

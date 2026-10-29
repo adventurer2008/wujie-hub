@@ -118,7 +118,10 @@ test("opening refreshes site Alpha without GitHub and keeps stable choices", asy
 test("late auto response cannot overwrite a newer refresh or a hidden page", async () => {
   const { p } = fixture();
   let finish;
-  p.pm.net.json = () => new Promise((r) => (finish = r));
+  let requests = 0;
+  p.pm.net.json = () => ++requests === 1
+    ? new Promise((r) => (finish = r))
+    : Promise.reject(Error("Legacy fallback unavailable"));
   const request = p.refreshAlphaOnOpen(1);
   p.openGeneration++;
   finish({ releases: [] });
