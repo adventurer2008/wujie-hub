@@ -130,7 +130,8 @@ class Page extends CompatibleSettingsTab {
     try {
       await fn();
       await this.pm.save();
-      this.status = "操作完成";
+      this.status = "";
+      new Notice("操作完成", 2000);
     } catch (e) {
       this.status = String(e);
       new Notice(this.status, 10000);

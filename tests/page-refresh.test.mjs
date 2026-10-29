@@ -111,6 +111,15 @@ test("failed operations refresh through the settings API and release the UI lock
   assert.match(page.status, /failed installation/);
   assert.equal(refreshes, 2);
 });
+
+test("successful operations clear inline status instead of leaving a completion row", async () => {
+  const page = Object.create(Page.prototype);
+  page.pm = { save: async () => {} };
+  page.update = () => {};
+  await page.task(async () => {});
+  assert.equal(page.status, "");
+  assert.equal(page.working, false);
+});
 function fixture() {
   const p = Object.create(Page.prototype);
   let saves = 0,
@@ -189,9 +198,10 @@ test("late auto response cannot overwrite a newer refresh or a hidden page", asy
   const { p } = fixture();
   let finish;
   let requests = 0;
-  p.pm.net.json = () => ++requests === 1
-    ? new Promise((r) => (finish = r))
-    : Promise.reject(Error("Legacy fallback unavailable"));
+  p.pm.net.json = () =>
+    ++requests === 1
+      ? new Promise((r) => (finish = r))
+      : Promise.reject(Error("Legacy fallback unavailable"));
   const request = p.refreshAlphaOnOpen(1);
   p.openGeneration++;
   finish({ releases: [] });
