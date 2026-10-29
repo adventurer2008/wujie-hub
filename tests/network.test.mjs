@@ -11,6 +11,65 @@ await build({
   alias: { obsidian: "./tests/obsidian-stub.ts" },
 });
 const { Network } = await import("../test-output/network.mjs");
+
+test("official download transport failure uses credential-free same-host WebView fetch", async () => {
+  const original = globalThis.fetch;
+  const urls = [];
+  globalThis.__pmcnRequest = async () => {
+    throw Error("native TLS failure");
+  };
+  globalThis.fetch = async (url, options) => {
+    urls.push(url);
+    assert.equal(options.credentials, "omit");
+    assert.equal(options.redirect, "error");
+    assert.ok(options.signal);
+    return { status: 200, text: async () => '{"releases":[]}' };
+  };
+  try {
+    assert.deepEqual(
+      await new Network().json(
+        "https://user.wujiesync.cc/download/alpha/releases.json",
+      ),
+      { releases: [] },
+    );
+    assert.deepEqual(urls, [
+      "https://user.wujiesync.cc/download/alpha/releases.json",
+    ]);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("fallback does not bypass HTTP or JSON failures and never targets the legacy host", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => {
+    assert.fail("unexpected fallback");
+  };
+  try {
+    for (const response of [
+      { status: 503, text: "unavailable" },
+      { status: 200, text: "invalid JSON" },
+    ]) {
+      globalThis.__pmcnRequest = async () => response;
+      await assert.rejects(
+        new Network().json(
+          "https://user.wujiesync.cc/download/alpha/releases.json",
+        ),
+      );
+    }
+    globalThis.__pmcnRequest = async () => {
+      throw Error("offline");
+    };
+    await assert.rejects(
+      new Network().get(
+        "https://sync.wujiesync.cc/download/alpha/releases.json",
+      ),
+      /offline/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
 test("unchanged version skips manifest; repeated lookup uses cache", async () => {
   const requests = [];
   globalThis.__pmcnRequest = async ({ url }) => {

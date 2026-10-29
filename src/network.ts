@@ -21,6 +21,52 @@ export class Network {
     { at: number; manifest: PluginManifest }
   >();
   private pendingVersions = new Map<string, Promise<PluginManifest>>();
+  private async downloadText(
+    url: string,
+  ): Promise<{ status: number; text: string }> {
+    let timer: number | undefined;
+    try {
+      return await Promise.race([
+        requestUrl({ url, throw: false }),
+        new Promise<never>((_, reject) => {
+          timer = window.setTimeout(() => reject(Error("请求超时")), 12000);
+        }),
+      ]);
+    } catch (nativeError) {
+      const target = new URL(url);
+      // Different native/WebView network stacks may behave differently on mobile.
+      // Never send community/proxy URLs or credentials through this fallback.
+      if (
+        target.origin !== "https://user.wujiesync.cc" ||
+        !target.pathname.startsWith("/download/") ||
+        typeof window.fetch !== "function"
+      )
+        throw nativeError;
+      const controller = new AbortController();
+      const fetchTimer = window.setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await window.fetch(url, {
+          credentials: "omit",
+          cache: "no-store",
+          referrerPolicy: "no-referrer",
+          signal: controller.signal,
+          redirect: "error",
+        });
+        return { status: response.status, text: await response.text() };
+      } catch (browserError) {
+        throw Error(
+          "原生请求：" +
+            String(nativeError) +
+            "；浏览器请求：" +
+            String(browserError),
+        );
+      } finally {
+        window.clearTimeout(fetchTimer);
+      }
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
   async latest(
     repo: string,
     current?: PluginManifest,
@@ -109,13 +155,7 @@ export class Network {
     const errors: string[] = [];
     for (const u of urls) {
       try {
-        let timer: number | undefined;
-        const r = await Promise.race([
-          requestUrl({ url: u, throw: false }),
-          new Promise<never>((_, reject) => {
-            timer = window.setTimeout(() => reject(Error("超时")), 12000);
-          }),
-        ]).finally(() => window.clearTimeout(timer));
+        const r = await this.downloadText(u);
         if (r.status !== 200) throw Error("HTTP " + r.status);
         if (r.text.length > 20_000_000) throw Error("文件过大");
         validate(r.text);

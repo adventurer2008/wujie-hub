@@ -150,10 +150,13 @@ class Page extends CompatibleSettingsTab {
   renderLegacy(): void {
     this.renderPage(this.containerEl);
   }
+  pageTitle(): string {
+    return this.pm.manifest.name + " v" + this.pm.manifest.version;
+  }
   getSettingDefinitions(): PortableSettingDefinition[] {
     return [
       {
-        name: this.pm.manifest.name,
+        name: this.pageTitle(),
         desc: "插件安装中心：在国内网络环境下，便捷搜索、安装和升级社区插件；管理无界同步版本与回退。",
         aliases: [
           "插件安装中心",
@@ -178,7 +181,7 @@ class Page extends CompatibleSettingsTab {
     if (opening) this.openGeneration++;
     el.empty();
     new Setting(el)
-      .setName(this.pm.manifest.name)
+      .setName(this.pageTitle())
       .setDesc(
         "插件安装中心 · 在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。",
       )
@@ -462,6 +465,8 @@ class Page extends CompatibleSettingsTab {
         current?.description ||
           "在不同设备间同步笔记、附件和设置，支持测试版本安装与回退。",
       );
+      if (this.alphaSourceWarning)
+        el.createDiv({ cls: "pmcn-status", text: this.alphaSourceWarning });
 
       wujieRow.addExtraButton((b) =>
         b
@@ -561,7 +566,12 @@ class Page extends CompatibleSettingsTab {
       loadSiteAlpha(this.pm.net),
     ]);
     if (history.status === "rejected" && alpha.status === "rejected")
-      throw Error("版本源暂不可用，请稍后重试");
+      throw Error(
+        "Alpha：" +
+          String(alpha.reason) +
+          "；稳定版：" +
+          String(history.reason),
+      );
     const nextAlpha =
       alpha.status === "fulfilled"
         ? alpha.value.filter((r) => r.channel === "Alpha")
@@ -574,11 +584,15 @@ class Page extends CompatibleSettingsTab {
     this.pm.state.wujieReleases = this.releases;
     this.selected = recentReleases(this.releases)[0]?.version || "";
     this.alphaSourceWarning =
-      alpha.status === "rejected" ? "Alpha版本源暂不可用" : "";
+      alpha.status === "rejected"
+        ? "Alpha 刷新失败：" + String(alpha.reason)
+        : "";
     new Notice(
       alpha.status === "rejected"
         ? "稳定版已刷新，Alpha 暂时使用上次记录"
-        : "Alpha 与稳定版本已刷新",
+        : history.status === "rejected"
+          ? "Alpha 已刷新，稳定版暂时使用上次记录：" + String(history.reason)
+          : "Alpha 与稳定版本已刷新",
     );
   }
   async refreshAlphaOnOpen(generation: number) {
@@ -598,14 +612,28 @@ class Page extends CompatibleSettingsTab {
       )
         this.selected = recentReleases(this.releases)[0]?.version || "";
       if (!this.working) {
-        await this.pm.save();
+        try {
+          await this.pm.save();
+        } catch (error) {
+          this.alphaSourceWarning =
+            "Alpha 已刷新，但本机缓存保存失败：" + String(error);
+        }
         if (this.pageVisible && generation === this.openGeneration)
           this.refreshWujieView?.();
       }
-    } catch {
+    } catch (error) {
       if (this.pageVisible && generation === this.openGeneration) {
-        this.alphaSourceWarning = "Alpha版本源暂不可用";
-        new Notice("Alpha 版本暂时无法刷新，当前显示上次记录", 5000);
+        const cached = this.releases.some((r) => r.channel === "Alpha");
+        this.alphaSourceWarning =
+          "Alpha 刷新失败：" +
+          String(error) +
+          (cached ? "；当前显示上次记录" : "；暂无本机 Alpha 缓存");
+        this.refreshWujieView?.();
+        new Notice(
+          "Alpha 刷新失败，详细原因见无界同步区域" +
+            (cached ? "；保留上次记录" : ""),
+          7000,
+        );
       }
     }
   }

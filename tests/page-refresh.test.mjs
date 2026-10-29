@@ -44,7 +44,7 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
   };
   const page = new Page({
     app,
-    manifest: { id: "wujie-hub", name: "Wujie Hub" },
+    manifest: { id: "wujie-hub", name: "Wujie Hub", version: "0.1.22" },
     state: { catalog: [] },
     net: {
       json() {
@@ -62,6 +62,7 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
   };
   walk(root);
   assert.ok(texts.includes("已安装插件"));
+  assert.ok(texts.includes("Wujie Hub v0.1.22"));
   assert.ok(texts.includes("无界同步"));
   assert.equal(texts.filter((text) => text === "检查更新").length, 2);
   assert.equal(alphaRequests, 1);
@@ -154,6 +155,35 @@ test("opening refreshes site Alpha without GitHub and keeps stable choices", asy
   );
   assert.equal(p.selected, "1.1.2-alpha.2");
   assert.deepEqual(counts(), { saves: 1, renders: 1 });
+});
+
+test("Alpha failure retains cached releases and exposes its actual error", async () => {
+  const { p, counts } = fixture();
+  p.pm.net.json = async () => {
+    throw Error("native TLS failure; Failed to fetch");
+  };
+  await p.refreshAlphaOnOpen(1);
+  assert.match(p.alphaSourceWarning, /native TLS failure/);
+  assert.match(p.alphaSourceWarning, /当前显示上次记录/);
+  assert.equal(p.releases[0].version, "1.1.2-alpha.1");
+  assert.equal(counts().renders, 1);
+  p.releases = [];
+  await p.refreshAlphaOnOpen(1);
+  assert.match(p.alphaSourceWarning, /暂无本机 Alpha 缓存/);
+});
+
+test("cache write failure is not reported as a failed Alpha download", async () => {
+  const { p, counts } = fixture();
+  p.pm.save = async () => {
+    throw Error("disk write denied");
+  };
+  await p.refreshAlphaOnOpen(1);
+  assert.equal(p.releases[0].version, "1.1.2-alpha.2");
+  assert.match(
+    p.alphaSourceWarning,
+    /Alpha 已刷新.*缓存保存失败.*disk write denied/,
+  );
+  assert.equal(counts().renders, 1);
 });
 test("late auto response cannot overwrite a newer refresh or a hidden page", async () => {
   const { p } = fixture();

@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.21
+# Wujie Hub — 0.1.22
 
 插件安装中心
 
@@ -7,6 +7,8 @@
 ## Overview
 
 Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its single settings page also provides a dedicated Wujie Sync section for selecting stable and Alpha releases, checking SHA-256 digests, and restoring a local code version that the user has explicitly confirmed as working. The interface is in Chinese.
+
+The page heading displays the currently loaded Wujie Hub version. If the native request transport fails for the official download site, a credential-free browser request retries the same HTTPS URL; it does not switch to the legacy host or GitHub. Refresh errors appear in the Wujie Sync section, and cache-write failures are reported separately from download failures. Mobile network acceptance remains pending.
 
 ## Installation and usage
 
