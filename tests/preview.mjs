@@ -7,14 +7,29 @@ for (const path of ["releases.json", "alpha/releases.json"])
   feeds[path] = await (
     await fetch("https://user.wujiesync.cc/download/" + path)
   ).json();
+feeds.global = await (
+  await fetch("https://smartsync.cc/download/releases.json")
+).json();
+const manifests = {
+  "wujie-sync": JSON.parse(
+    await readFile(
+      "E:/Data/test3/.obsidian/plugins/wujie-sync/manifest.json",
+      "utf8",
+    ),
+  ),
+  "smart-sync-global": await (
+    await fetch("https://smartsync.cc/download/alpha/1.1.4/manifest.json")
+  ).json(),
+};
 await build({
   stdin: {
     contents: `import { Page } from "./src/main";
 const feeds = ${JSON.stringify(feeds)};
-const app = {plugins:{manifests:{},plugins:{},enabledPlugins:new Set(),loadManifests:async()=>{},enablePluginAndSave:async()=>{},disablePluginAndSave:async()=>{},unloadPlugin:async()=>{}}};
-const page = new Page({app,manifest:{id:"wujie-hub",name:"Wujie Hub",version:"0.1.28 · UI candidate"},state:{catalog:[]},net:{json:async(url)=>feeds[url.includes("/alpha/")?"alpha/releases.json":"releases.json"]},save:async()=>{},confirm:async()=>false});
+const app = {plugins:{manifests:${JSON.stringify(manifests)},plugins:{},enabledPlugins:new Set(),loadManifests:async()=>{},enablePluginAndSave:async()=>{},disablePluginAndSave:async()=>{},unloadPlugin:async()=>{}}};
+const page = new Page({app,manifest:{id:"wujie-hub",name:"Wujie Hub",version:"next · UI candidate"},state:{catalog:[]},net:{json:async(url)=>url.startsWith("https://smartsync.cc/")?feeds.global:feeds[url.includes("/alpha/")?"alpha/releases.json":"releases.json"]},save:async()=>{},confirm:async()=>false});
 page.renderPage(document.getElementById("settings"));
-await page.refreshWujieAll(); page.refreshWujieView();`,
+await page.refreshWujieAll(false); page.refreshWujieView();
+await page.refreshSmartSyncReleases();`,
     resolveDir: process.cwd(),
   },
   outfile: directory + "/preview.js",

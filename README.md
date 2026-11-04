@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.29
+# Wujie Hub — 0.1.30
 
 插件安装中心
 
@@ -27,6 +27,7 @@ The manager changes only `manifest.json`, `main.js`, and `styles.css` in target 
 - Third-party proxies `ghfast.top`, `gh-proxy.com`, `gh.llkk.cc`, `ghproxy.net`, `gh.monlor.com`, and `wget.la` relay GitHub requests to improve access from China. Metadata checks try some sources in parallel; file downloads switch sources after failures. Proxies can see the GitHub URLs they relay. Ordinary community downloads do not have independently trusted publisher hashes; install only plugins and sources you trust. A matching Wujie digest establishes consistency with its metadata, not an author signature.
 - `user.wujiesync.cc` supplies Wujie Sync Alpha and stable release feeds and installation files. Official Wujie downloads do not fall back to the old download host or GitHub. Opening this plugin's settings page automatically refreshes that feed; manual update checks also request it. Release files are downloaded after confirmation.
 - An optional custom HTTPS `feedUrl` supplies Wujie release metadata when configured. Confirmed installs request the HTTPS file URLs specified by that feed.
+- `smartsync.cc` supplies Smart Sync's stable/Alpha index and installation files. Opening settings or checking updates refreshes the index; installation requires confirmation and verifies the three SHA-256 digests from that index.
 
 Search terms are matched locally and are not uploaded as search parameters. Request URLs identify the requested repository, version, or file; remote services receive the request IP address and ordinary HTTP headers. This plugin requests catalogs, metadata, and release files. It does not upload notes, attachments, plugin settings, `data.json`, or rollback backups. Its cache, configuration, and backups remain local. The manager requires no account or payment; installed plugins have their own requirements and policies.
 
@@ -52,11 +53,11 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 ## Smart Sync Alpha
 
-The dedicated **Smart Sync** section offers version **1.1.4** through an explicit test-channel confirmation. It uses the same row, English description, update check, history picker and selected-version installation controls as Wujie Sync. Version 1.1.4 is grouped under **测试版** (Test releases) and requires explicit selection. Its more menu can mark the current version as working after user confirmation; this Global rollback target is independent from the domestic target. The original release version and files remain unchanged; Alpha is its Hub distribution channel. Requires Obsidian **1.12.7+**. Use an isolated test vault. Its overseas account and cloud storage are separate from Wujie Sync. It is excluded from ordinary community and bulk updates. The Smart Sync Community listing remains archived.
+The dedicated **Smart Sync** section reads stable and Alpha releases from [the Global download index](https://smartsync.cc/download/releases.json) on opening or **检查更新** (Check for updates). It shows the five highest stable releases and three recent Alpha releases, defaults to the highest stable, and preserves an explicit selection while that release is available. With no stable release, the user must choose a test release. Reading the index never installs or updates a plugin. Future package versions do not require a matching Hub release: publishers add validated immutable packages and update the same schema-v1 index. Hub itself may still need maintenance for defects, security or Obsidian API changes.
 
-Hub downloads all three files from the pinned [Global GitHub release](https://github.com/adventurer2008/obsidian-smart-sync-release-global/releases/tag/1.1.4), through its existing GitHub mirrors with direct fallback, and checks embedded SHA-256 hashes before installation. Opening settings does not download this package. First installs remain disabled. Existing configuration and enabled state are preserved. On updates, an independent installation-before snapshot is retained for code rollback; it is not labeled user-verified and cannot undo configuration or remote migrations. Nothing is installed automatically into any vault.
+Hub downloads all three files from that release's official `https://smartsync.cc/download/stable/VERSION/` or `alpha/VERSION/` directory and verifies SHA-256 digests from the HTTPS index. Foreign IDs, unexpected hosts/directories, invalid hashes, duplicate channel/version entries and unsupported schemas are rejected. A failed refresh keeps the last valid local list with an error. New downloads also validate exact plugin ID, version and Obsidian compatibility before installation. First installs remain disabled; existing configuration and enabled state are preserved. The independent Global rollback target is marked user-verified only after explicit confirmation. Code rollback cannot undo configuration or remote migrations. Nothing is installed automatically into any vault.
 
-在设置底部的 **Smart Sync** 使用与无界同步一致的名称、版本/作者、英文描述、检查更新和历史版本控件。选择“测试版”中的 1.1.4，再点击“安装所选版本”，确认测试提示后安装。使用独立测试库；首次安装后在官方第三方插件设置手动启用。海外服务与国内无界同步的账号和存储独立。更新前保存的代码可通过“恢复安装前版本”还原；更多菜单“标记当前版本正常”须本人验证后确认，随后显示“回退至版本号”。国内回退目标保持独立。当前固定提供 1.1.4，检查更新验证海外下载清单，其他候选需更新 Hub 中的版本及摘要，不跟随 GitHub latest 自动升级。
+普通“已安装插件”区域仅管理社区插件更新；无界同步和 **Smart Sync** 在下方两张独立卡片中管理，不重复出现在普通搜索/更新结果。两者使用相同名称、版本/作者、英文描述、检查更新和历史版本控件。打开页面自动刷新各自下载清单，稳定版在前且默认最高稳定版，Alpha 在“测试版”中手动选择。海外目前实际清单为 1.1.4 Alpha，并未把它改成稳定版。以后发布新插件包及清单即可被 Hub 发现，无需把新版本号和摘要写进 Hub 重新发版。刷新不会自动安装；安装仍需确认。账号、云端存储和已确认回退目标始终按国内/海外独立保留。
 
 Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机验收均未完成；自动化校验不替代真机验收。该入口为明确选择的 Alpha 测试分发，不代表全平台正式验收通过。
 
@@ -109,7 +110,8 @@ Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机
 - `api.github.com`：查询社区插件的最新正式 Release，以及无界同步国内发行仓库的历史 Release 和文件摘要。
 - `github.com`：下载用户选择的插件发行文件；GitHub 可能将下载重定向至其文件分发服务。
 - 第三方 GitHub 加速代理 `ghfast.top`、`gh-proxy.com`、`gh.llkk.cc`、`ghproxy.net`、`gh.monlor.com`、`wget.la`：转发上述 GitHub 请求，以改善国内访问。版本查询会并行尝试部分来源，文件下载按来源失败切换。代理可看到所转发的 GitHub 地址；文件摘要一致不等同于作者签名。
-- `user.wujiesync.cc`：提供无界同步 Alpha、稳定版清单及安装文件。每次打开设置页自动刷新 Alpha，手动检查更新刷新两种渠道；确认后从新站下载发行文件，不回退旧官方域名或 GitHub。
+- `user.wujiesync.cc`：提供无界同步 Alpha、稳定版清单及安装文件。每次打开设置页和手动检查更新均刷新两种渠道；确认后从新站下载发行文件，不回退旧官方域名或 GitHub。
+- `smartsync.cc`：提供 Smart Sync 稳定版/Alpha 统一清单和安装文件；打开设置页或检查更新刷新清单，确认安装时校验清单中的三个 SHA-256 摘要。
 - 可选的自定义 HTTPS `feedUrl`：配置后用于获取无界同步版本清单；确认安装后会请求清单指定的 HTTPS 文件地址。这些地址由清单提供方决定。
 
 搜索关键词在本机匹配，不作为搜索参数上传。请求的 URL 包含所查询的仓库、版本或文件路径，服务提供方可以接收到请求 IP 和常规 HTTP 请求头。当前代码只请求目录、版本元数据及发行文件，不上传笔记、附件、插件配置、`data.json` 或本机回退备份；缓存、配置和备份保存在本机。管理器不要求账号或付费；被安装插件自身的网络、账号和付费要求由对应插件说明。

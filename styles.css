@@ -147,6 +147,15 @@
   width: 180px;
   max-width: 100%;
 }
+.pmcn-community-section {
+  margin-bottom: 16px;
+}
+.pmcn-sync-section {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 4px 16px;
+  margin-top: 16px;
+}
 
 @media (max-width: 600px) {
   .pmcn-installed {

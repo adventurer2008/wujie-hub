@@ -28,6 +28,167 @@ await build({
   ],
 });
 const { Page, TestElement } = await import("../test-output/page.mjs");
+const globalRelease = {
+  id: "smart-sync-global",
+  version: "1.1.4",
+  channel: "Alpha",
+  baseUrl: "https://smartsync.cc/download/alpha/1.1.4/",
+  sha256: {
+    "main.js": "a".repeat(64),
+    "manifest.json": "b".repeat(64),
+    "styles.css": "c".repeat(64),
+  },
+};
+
+function globalFixture() {
+  const page = Object.create(Page.prototype);
+  Object.assign(page, {
+    pageVisible: true,
+    smartSyncGeneration: 0,
+    smartSyncReleases: [globalRelease],
+    smartSyncSelected: "",
+    smartSyncManualSelection: false,
+    pm: {
+      state: {},
+      save: async () => {},
+      net: {
+        json: async () => ({
+          pluginId: "smart-sync-global",
+          releases: [globalRelease],
+        }),
+      },
+    },
+  });
+  return page;
+}
+
+test("new stable feed defaults to highest stable without installation and preserves manual Alpha", async () => {
+  const page = globalFixture();
+  const stable = (version) => ({
+    ...globalRelease,
+    version,
+    channel: "Stable",
+    baseUrl: `https://smartsync.cc/download/stable/${version}/`,
+  });
+  page.pm.net.json = async () => ({
+    pluginId: "smart-sync-global",
+    releases: [globalRelease, stable("3.9.0"), stable("3.10.0")],
+  });
+  await page.refreshSmartSyncReleases();
+  assert.equal(page.smartSyncSelected, "Stable:3.10.0");
+  page.smartSyncSelected = "Alpha:1.1.4";
+  page.smartSyncManualSelection = true;
+  await page.refreshSmartSyncReleases();
+  assert.equal(page.smartSyncSelected, "Alpha:1.1.4");
+  page.pm.net.json = async () => ({
+    pluginId: "smart-sync-global",
+    releases: [stable("4.0.0")],
+  });
+  await page.refreshSmartSyncReleases();
+  assert.equal(page.smartSyncSelected, "Stable:4.0.0");
+  assert.equal(page.smartSyncManualSelection, false);
+});
+
+test("Global failed refresh keeps last valid cache and ignores late or hidden responses", async () => {
+  const page = globalFixture();
+  const original = page.smartSyncReleases;
+  page.pm.net.json = async () => {
+    throw Error("offline");
+  };
+  await page.refreshSmartSyncReleases();
+  assert.equal(page.smartSyncReleases, original);
+  assert.match(page.smartSyncWarning, /offline/);
+  let complete;
+  page.pm.net.json = () =>
+    new Promise((resolve) => {
+      complete = resolve;
+    });
+  const pending = page.refreshSmartSyncReleases();
+  page.pageVisible = false;
+  page.smartSyncGeneration++;
+  complete({ pluginId: "smart-sync-global", releases: [] });
+  await pending;
+  assert.equal(page.smartSyncReleases, original);
+  assert.equal(page.pm.state.smartSyncReleases, undefined);
+});
+
+test("Global manual refresh wins over a slower opening refresh and repaints", async () => {
+  const page = globalFixture();
+  let complete,
+    repaint = 0;
+  page.refreshSmartSyncView = () => repaint++;
+  page.pm.net.json = () =>
+    new Promise((resolve) => {
+      complete = resolve;
+    });
+  const opening = page.refreshSmartSyncReleases();
+  page.pm.net.json = async () => ({
+    pluginId: "smart-sync-global",
+    releases: [],
+  });
+  await page.refreshSmartSyncReleases();
+  complete({ pluginId: "smart-sync-global", releases: [globalRelease] });
+  await opening;
+  assert.deepEqual(page.smartSyncReleases, []);
+  assert.equal(repaint, 1);
+});
+
+test("both installed sync plugins appear once in separate cards, outside ordinary results", () => {
+  const plugins = {
+    manifests: {
+      "wujie-sync": { id: "wujie-sync", name: "无界同步", version: "1.1.3" },
+      "smart-sync-global": {
+        id: "smart-sync-global",
+        name: "Smart Sync",
+        version: "1.1.4",
+      },
+    },
+    plugins: {},
+    enabledPlugins: new Set(),
+    loadManifests() {},
+    enablePluginAndSave() {},
+    disablePluginAndSave() {},
+    unloadPlugin() {},
+  };
+  const page = new Page({
+    app: { plugins },
+    manifest: { id: "wujie-hub", name: "Hub", version: "candidate" },
+    state: {
+      catalog: Object.values(plugins.manifests).map((value) => ({
+        ...value,
+        description: "Sync",
+        repo: "example/plugin",
+      })),
+    },
+    net: { json: () => new Promise(() => {}) },
+  });
+  page.query = "sync";
+  const root = new TestElement();
+  page.renderPage(root);
+  const elements = [];
+  const walk = (element) => {
+    elements.push(element);
+    element.children.forEach(walk);
+  };
+  walk(root);
+  assert.equal(
+    elements.filter((element) => element.text === "Smart Sync").length,
+    1,
+  );
+  assert.equal(
+    elements.filter((element) => element.text === "无界同步").length,
+    1,
+  );
+  assert.equal(
+    elements.filter((element) => element.classes.has("pmcn-sync-section"))
+      .length,
+    2,
+  );
+  assert.equal(
+    elements.filter((element) => element.text === "已安装").length,
+    0,
+  );
+});
 
 test("1.12 page renders both update buttons and Wujie while network is unavailable", () => {
   let alphaRequests = 0;
@@ -45,7 +206,7 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
   const page = new Page({
     app,
     manifest: { id: "wujie-hub", name: "Wujie Hub", version: "0.1.22" },
-    state: { catalog: [] },
+    state: { catalog: [], smartSyncReleases: [globalRelease] },
     net: {
       json() {
         alphaRequests++;
@@ -79,7 +240,7 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
     ).length,
     2,
   );
-  assert.equal(alphaRequests, 1);
+  assert.equal(alphaRequests, 3);
 });
 
 test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {
@@ -101,7 +262,7 @@ test("Smart Sync Alpha requires explicit consent before any download or installa
       },
     },
   };
-  await page.installSmartSync();
+  await page.installSmartSync(globalRelease);
   assert.match(prompt, /Alpha/);
   assert.match(prompt, /隔离测试库/);
   assert.match(prompt, /海外账号与国内版独立/);
@@ -137,7 +298,7 @@ test("Alpha download failure leaves installer and domestic rollback state untouc
       },
     },
   };
-  await assert.rejects(page.installSmartSync(), /offline/);
+  await assert.rejects(page.installSmartSync(globalRelease), /offline/);
   assert.deepEqual(state, before);
 });
 

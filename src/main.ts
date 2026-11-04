@@ -4,9 +4,10 @@ import { record, manifestVersion } from "./json";
 import { Installer } from "./installer";
 import {
   SMART_SYNC_ID,
-  SMART_SYNC_ALPHA,
   downloadSmartSync,
-  checkSmartSyncAlpha,
+  loadSmartSyncReleases,
+  parseSmartSyncFeed,
+  smartSyncReleaseKey,
 } from "./smart-sync";
 import {
   manager,
@@ -34,6 +35,7 @@ interface State {
   wujieReleases?: WujieRelease[];
   installedWujieTag?: string;
   feedUrl?: string;
+  smartSyncReleases?: WujieRelease[];
   smartSyncBackup?: {
     bundle: Bundle;
     sha256: Record<string, string>;
@@ -124,11 +126,27 @@ class Page extends CompatibleSettingsTab {
   refreshWujieView?: () => void;
   refreshSmartSyncView?: () => void;
   smartSyncSelected = "";
+  smartSyncReleases: WujieRelease[] = [];
+  smartSyncManualSelection = false;
+  smartSyncWarning = "";
+  smartSyncGeneration = 0;
 
   constructor(private pm: PM) {
     super(pm.app, pm);
     this.releases = pm.state.wujieReleases || [];
     this.selected = defaultReleaseVersion(recentReleases(this.releases));
+    try {
+      this.smartSyncReleases = parseSmartSyncFeed({
+        pluginId: SMART_SYNC_ID,
+        releases: (pm.state.smartSyncReleases || []).map((release) => ({
+          ...release,
+          id: SMART_SYNC_ID,
+        })),
+      });
+    } catch {
+      this.smartSyncWarning = "Smart Sync 本机版本缓存无效，正在重新获取";
+    }
+    this.selectSmartSyncDefault();
   }
   selectDefaultRelease() {
     const visible = recentReleases(this.releases);
@@ -143,6 +161,7 @@ class Page extends CompatibleSettingsTab {
   hide() {
     this.pageVisible = false;
     this.openGeneration++;
+    this.smartSyncGeneration++;
     this.refreshWujieView = undefined;
     this.refreshSmartSyncView = undefined;
     this.query = "";
@@ -187,7 +206,7 @@ class Page extends CompatibleSettingsTab {
     return [
       {
         name: this.pageTitle(),
-        desc: "插件安装中心：搜索、安装和升级社区插件；管理无界同步与 Smart Sync Alpha。",
+        desc: "插件安装中心：搜索、安装和升级社区插件；管理无界同步与 Smart Sync 版本。",
         aliases: [
           "插件安装中心",
           "安装",
@@ -213,6 +232,8 @@ class Page extends CompatibleSettingsTab {
       this.openGeneration++;
       this.manualSelection = false;
       this.selectDefaultRelease();
+      this.smartSyncManualSelection = false;
+      this.selectSmartSyncDefault();
     }
     el.empty();
     const heading = new Setting(el)
@@ -252,6 +273,9 @@ class Page extends CompatibleSettingsTab {
               : 3;
       };
       const matched = [...entries.values()]
+        .filter(
+          (entry) => entry.id !== "wujie-sync" && entry.id !== SMART_SYNC_ID,
+        )
         .filter((e) =>
           (
             e.name +
@@ -404,7 +428,8 @@ class Page extends CompatibleSettingsTab {
     );
     renderRows();
     loadCatalog();
-    const updateControls = new Setting(el)
+    const communityContainer = el.createDiv({ cls: "pmcn-community-section" });
+    const updateControls = new Setting(communityContainer)
       .setName("已安装插件")
       .setClass("pmcn-update-controls")
       .setClass("pmcn-section-heading");
@@ -481,7 +506,9 @@ class Page extends CompatibleSettingsTab {
           if (e) await this.installCommunity(e);
         }
       });
-      const updateRows = el.createDiv({ cls: "pmcn-installed" });
+      const updateRows = communityContainer.createDiv({
+        cls: "pmcn-installed",
+      });
       for (const m of updatable) {
         const e = this.pm.state.catalog.find((e) => e.id === m.id);
         if (!e) continue;
@@ -492,7 +519,7 @@ class Page extends CompatibleSettingsTab {
         this.button(row, "加速更新", () => this.installCommunity(e));
       }
     }
-    const wujieContainer = el.createDiv({ cls: "pmcn-wujie-section" });
+    const wujieContainer = el.createDiv({ cls: "pmcn-sync-section" });
     const renderWujie = () => {
       const el = wujieContainer;
       el.empty();
@@ -607,7 +634,7 @@ class Page extends CompatibleSettingsTab {
     };
     this.refreshWujieView = renderWujie;
     renderWujie();
-    const smartSyncContainer = el.createDiv({ cls: "pmcn-wujie-section" });
+    const smartSyncContainer = el.createDiv({ cls: "pmcn-sync-section" });
     const renderSmartSync = () => {
       smartSyncContainer.empty();
       const current = manager(this.app).manifests[SMART_SYNC_ID];
@@ -623,6 +650,11 @@ class Page extends CompatibleSettingsTab {
           (current?.author || "lihy"),
       });
       row.setDesc(SYNC_DESCRIPTION);
+      if (this.smartSyncWarning)
+        smartSyncContainer.createDiv({
+          cls: "pmcn-status",
+          text: this.smartSyncWarning,
+        });
       row.addExtraButton((button) =>
         button
           .setIcon("more-vertical")
@@ -653,7 +685,8 @@ class Page extends CompatibleSettingsTab {
           }),
       );
       this.button(row, "检查更新", async () => {
-        new Notice(await checkSmartSyncAlpha(this.pm.net));
+        await this.refreshSmartSyncReleases();
+        if (this.smartSyncWarning) throw Error(this.smartSyncWarning);
       });
       const backup = this.pm.state.smartSyncBackup;
       if (backup) {
@@ -685,37 +718,106 @@ class Page extends CompatibleSettingsTab {
               : "（安装前快照；未确认正常）"),
         });
       }
+      const recent = recentReleases(this.smartSyncReleases);
+      if (!recent.length) {
+        smartSyncContainer.createDiv({
+          cls: "pmcn-plugin-meta",
+          text: "暂无可用版本，请检查更新",
+        });
+        return;
+      }
+      this.selectSmartSyncDefault();
       const choices = new Setting(smartSyncContainer)
         .setName("历史版本")
         .setClass("pmcn-release-picker");
       choices.addDropdown((dropdown) => {
-        dropdown.selectEl.createEl("option", {
-          text: "请选择版本",
-          attr: { value: "" },
-        });
-        const group = dropdown.selectEl.createEl("optgroup", {
-          attr: { label: "测试版" },
-        });
-        group.createEl("option", {
-          text: SMART_SYNC_ALPHA.version,
-          attr: { value: SMART_SYNC_ALPHA.version },
-        });
+        if (!this.smartSyncSelected)
+          dropdown.selectEl.createEl("option", {
+            text: "请选择版本",
+            attr: { value: "" },
+          });
+        for (const [channel, label] of [
+          ["Stable", "稳定版"],
+          ["Alpha", "测试版"],
+        ] as const) {
+          const versions = recent.filter(
+            (release) => release.channel === channel,
+          );
+          if (!versions.length) continue;
+          const group = dropdown.selectEl.createEl("optgroup", {
+            attr: { label },
+          });
+          for (const release of versions)
+            group.createEl("option", {
+              text: release.version,
+              attr: { value: smartSyncReleaseKey(release) },
+            });
+        }
         dropdown
           .setValue(this.smartSyncSelected)
           .setDisabled(this.working)
           .onChange((value) => {
             this.smartSyncSelected = value;
+            this.smartSyncManualSelection = true;
           });
       });
       this.button(choices, "安装所选版本", async () => {
-        if (this.smartSyncSelected !== SMART_SYNC_ALPHA.version)
-          throw Error("请选择可用版本");
-        await this.installSmartSync();
+        const release = this.smartSyncReleases.find(
+          (entry) => smartSyncReleaseKey(entry) === this.smartSyncSelected,
+        );
+        if (!release) throw Error("请选择可用版本");
+        await this.installSmartSync(release);
       });
     };
     this.refreshSmartSyncView = renderSmartSync;
     renderSmartSync();
-    if (opening) void this.refreshAlphaOnOpen(this.openGeneration);
+    if (opening) {
+      void this.refreshWujieAll(false).catch((error) => {
+        if (!this.pageVisible) return;
+        this.alphaSourceWarning =
+          "无界同步刷新失败，保留上次记录：" + String(error);
+        this.refreshWujieView?.();
+      });
+      void this.refreshSmartSyncReleases();
+    }
+  }
+
+  selectSmartSyncDefault() {
+    const visible = recentReleases(this.smartSyncReleases);
+    if (
+      this.smartSyncManualSelection &&
+      visible.some(
+        (release) => smartSyncReleaseKey(release) === this.smartSyncSelected,
+      )
+    )
+      return;
+    this.smartSyncManualSelection = false;
+    const version = defaultReleaseVersion(visible);
+    this.smartSyncSelected = version ? "Stable:" + version : "";
+  }
+
+  async refreshSmartSyncReleases() {
+    const generation = ++this.smartSyncGeneration;
+    try {
+      const releases = await loadSmartSyncReleases(this.pm.net);
+      if (!this.pageVisible || generation !== this.smartSyncGeneration) return;
+      this.smartSyncReleases = releases;
+      this.pm.state.smartSyncReleases = releases;
+      this.smartSyncWarning = "";
+      this.selectSmartSyncDefault();
+      try {
+        await this.pm.save();
+      } catch (error) {
+        this.smartSyncWarning =
+          "Smart Sync 清单已刷新，但本机缓存保存失败：" + String(error);
+      }
+    } catch (error) {
+      if (!this.pageVisible || generation !== this.smartSyncGeneration) return;
+      this.smartSyncWarning =
+        "Smart Sync 刷新失败，保留上次记录：" + String(error);
+    }
+    if (this.pageVisible && generation === this.smartSyncGeneration)
+      this.refreshSmartSyncView?.();
   }
 
   async markSmartSyncVerified() {
@@ -732,16 +834,20 @@ class Page extends CompatibleSettingsTab {
     await this.pm.save();
   }
 
-  async installSmartSync() {
+  async installSmartSync(release: WujieRelease) {
     if (
       !(await this.pm.confirm(
         "安装 Smart Sync " +
-          SMART_SYNC_ALPHA.version +
-          "（Alpha 测试渠道）？请在隔离测试库使用，海外账号与国内版独立。将校验 SHA-256，保留配置；首次安装后需在第三方插件设置中手动启用。更新保留原启用状态，代码回退不能撤销配置或云端数据迁移。",
+          release.version +
+          "（" +
+          (release.channel === "Alpha" ? "Alpha 测试渠道" : "稳定版") +
+          "）？" +
+          (release.channel === "Alpha" ? "请在隔离测试库使用，" : "") +
+          "海外账号与国内版独立。将校验 SHA-256，保留配置；首次安装后需在第三方插件设置中手动启用。更新保留原启用状态，代码回退不能撤销配置或云端数据迁移。",
       ))
     )
       return;
-    const bundle = await downloadSmartSync(this.pm.net);
+    const bundle = await downloadSmartSync(this.pm.net, release);
     this.pm.installer.validate(SMART_SYNC_ID, bundle);
     const current = manager(this.app).manifests[SMART_SYNC_ID];
     if (current && !this.pm.state.smartSyncBackup) {
@@ -756,14 +862,10 @@ class Page extends CompatibleSettingsTab {
       };
       await this.pm.save();
     }
-    await this.pm.installer.install(
-      SMART_SYNC_ID,
-      bundle,
-      SMART_SYNC_ALPHA.version,
-    );
+    await this.pm.installer.install(SMART_SYNC_ID, bundle, release.version);
   }
 
-  async refreshWujieAll() {
+  async refreshWujieAll(notify = true) {
     const generation = ++this.openGeneration;
     const [history, alpha] = await Promise.allSettled([
       loadWujieReleases(this.pm.net, this.pm.state.feedUrl),
@@ -792,13 +894,14 @@ class Page extends CompatibleSettingsTab {
       alpha.status === "rejected"
         ? "Alpha 刷新失败：" + String(alpha.reason)
         : "";
-    new Notice(
-      alpha.status === "rejected"
-        ? "稳定版已刷新，Alpha 暂时使用上次记录"
-        : history.status === "rejected"
-          ? "Alpha 已刷新，稳定版暂时使用上次记录：" + String(history.reason)
-          : "Alpha 与稳定版本已刷新",
-    );
+    if (notify)
+      new Notice(
+        alpha.status === "rejected"
+          ? "稳定版已刷新，Alpha 暂时使用上次记录"
+          : history.status === "rejected"
+            ? "Alpha 已刷新，稳定版暂时使用上次记录：" + String(history.reason)
+            : "Alpha 与稳定版本已刷新",
+      );
   }
   async refreshAlphaOnOpen(generation: number) {
     try {

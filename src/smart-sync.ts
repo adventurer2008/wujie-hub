@@ -1,61 +1,104 @@
 import { Network } from "./network";
 import { Bundle, FILES } from "./core";
 import { record } from "./json";
-import { verifyBundle } from "./wujie";
+import { verifyBundle, WujieRelease } from "./wujie";
 
 export const SMART_SYNC_ID = "smart-sync-global";
-export const SMART_SYNC_ALPHA_FEED =
-  "https://smartsync.cc/download/alpha/releases.json";
-export const SMART_SYNC_ALPHA = Object.freeze({
-  version: "1.1.4",
-  baseUrl:
-    "https://github.com/adventurer2008/obsidian-smart-sync-release-global/releases/download/1.1.4/",
-  sha256: Object.freeze({
-    "main.js":
-      "1d39be46a0224005a1c8e95b45e686c3837e171935b0490bc3dcdb38896adaa6",
-    "manifest.json":
-      "926cb2b550156edd54eba4f6f84f155d5d8828a342ecf85bc92feb2c3127e058",
-    "styles.css":
-      "5c79e29c861f843d51d6de41d3c740d93905131c6495e4754777ac7cfa725b0b",
-  }),
-});
+export const SMART_SYNC_FEED = "https://smartsync.cc/download/releases.json";
+export const smartSyncReleaseKey = (release: WujieRelease) =>
+  release.channel + ":" + release.version;
 
-export async function checkSmartSyncAlpha(net: Network) {
-  const feed = record(await net.json<unknown>(SMART_SYNC_ALPHA_FEED));
-  if (feed.pluginId !== SMART_SYNC_ID || !Array.isArray(feed.releases))
-    throw Error("Smart Sync 版本清单格式错误");
-  const releases = feed.releases.map((entry: unknown) => record(entry));
-  const release = releases.find(
-    (entry) =>
-      entry.version === SMART_SYNC_ALPHA.version && entry.channel === "Alpha",
-  );
-  const expected = record(release?.sha256);
+function assetUrl(value: string, release: WujieRelease, file?: string) {
+  const url = new URL(value);
+  const directory =
+    "/download/" +
+    release.channel.toLowerCase() +
+    "/" +
+    encodeURIComponent(release.version) +
+    "/";
   if (
-    !release ||
-    !Object.entries(SMART_SYNC_ALPHA.sha256).every(
-      ([file, digest]) => expected[file] === digest,
-    )
+    url.origin !== "https://smartsync.cc" ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    url.pathname !== directory + (file || "")
   )
-    throw Error("Smart Sync 版本清单与已校验安装包不匹配，请更新 Hub 后重试");
-  return releases.some((entry) => entry.version !== SMART_SYNC_ALPHA.version)
-    ? "当前可安装 Alpha " +
-        SMART_SYNC_ALPHA.version +
-        "；下载站有其他版本，请更新 Hub 获取支持"
-    : "Smart Sync Alpha 已是最新版本 " + SMART_SYNC_ALPHA.version;
+    throw Error("Smart Sync 安装文件地址不属于该版本的官方下载目录");
+  return url.href;
 }
 
-export async function downloadSmartSync(net: Network): Promise<Bundle> {
+export function parseSmartSyncFeed(value: unknown): WujieRelease[] {
+  const feed = record(value);
+  if (
+    feed.pluginId !== SMART_SYNC_ID ||
+    (feed.schemaVersion !== undefined && feed.schemaVersion !== 1) ||
+    !Array.isArray(feed.releases) ||
+    feed.releases.length > 1000
+  )
+    throw Error("Smart Sync 版本清单格式不受支持，保留上次记录");
+  const keys = new Set<string>();
+  return feed.releases.map((value: unknown) => {
+    const entry = record(value);
+    if (
+      entry.id !== SMART_SYNC_ID ||
+      typeof entry.version !== "string" ||
+      !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(entry.version) ||
+      !["Stable", "Alpha"].includes(String(entry.channel)) ||
+      (entry.channel === "Stable" && !/^\d+\.\d+\.\d+$/.test(entry.version))
+    )
+      throw Error("Smart Sync 清单包含无效插件、版本或渠道");
+    const release: WujieRelease = {
+      version: entry.version,
+      channel: entry.channel as "Stable" | "Alpha",
+      baseUrl: typeof entry.baseUrl === "string" ? entry.baseUrl : "",
+      sha256: {},
+      rollbackSafe: entry.rollbackSafe === true,
+    };
+    assetUrl(release.baseUrl, release);
+    for (const file of FILES) {
+      const digest = record(entry.sha256)[file];
+      if (typeof digest !== "string" || !/^[a-f0-9]{64}$/i.test(digest))
+        throw Error("Smart Sync 清单缺少有效文件摘要：" + file);
+      release.sha256[file] = digest.toLowerCase();
+    }
+    if (entry.publishedAt !== undefined) {
+      if (
+        typeof entry.publishedAt !== "string" ||
+        !Number.isFinite(Date.parse(entry.publishedAt))
+      )
+        throw Error("Smart Sync 清单发布时间无效");
+      release.publishedAt = entry.publishedAt;
+    }
+    const key = smartSyncReleaseKey(release);
+    if (keys.has(key)) throw Error("Smart Sync 清单包含重复版本");
+    keys.add(key);
+    return release;
+  });
+}
+
+export async function loadSmartSyncReleases(net: Network) {
+  return parseSmartSyncFeed(await net.json<unknown>(SMART_SYNC_FEED));
+}
+
+export async function downloadSmartSync(
+  net: Network,
+  release: WujieRelease,
+): Promise<Bundle> {
+  const [checked] = parseSmartSyncFeed({
+    pluginId: SMART_SYNC_ID,
+    releases: [{ ...release, id: SMART_SYNC_ID }],
+  });
   const bundle: Bundle = {};
   for (const file of FILES)
-    bundle[file] = await net.get(SMART_SYNC_ALPHA.baseUrl + file);
-  await verifyBundle(bundle, SMART_SYNC_ALPHA.sha256);
+    bundle[file] = await net.get(
+      assetUrl(new URL(file, checked.baseUrl).href, checked, file),
+    );
+  await verifyBundle(bundle, checked.sha256);
   const manifest = record(
     JSON.parse(bundle["manifest.json"] || "null") as unknown,
   );
-  if (
-    manifest.id !== SMART_SYNC_ID ||
-    manifest.version !== SMART_SYNC_ALPHA.version
-  )
+  if (manifest.id !== SMART_SYNC_ID || manifest.version !== checked.version)
     throw Error("Smart Sync 发行版本与安装包不匹配");
   return bundle;
 }
