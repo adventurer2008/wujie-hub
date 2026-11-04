@@ -3,6 +3,11 @@ import { Network, Entry } from "./network";
 import { record, manifestVersion } from "./json";
 import { Installer } from "./installer";
 import {
+  SMART_SYNC_ID,
+  SMART_SYNC_ALPHA,
+  downloadSmartSync,
+} from "./smart-sync";
+import {
   manager,
   openPluginSettings,
   CompatibleSettingsTab,
@@ -28,6 +33,7 @@ interface State {
   wujieReleases?: WujieRelease[];
   installedWujieTag?: string;
   feedUrl?: string;
+  smartSyncBackup?: { bundle: Bundle; sha256: Record<string, string> };
 }
 class Confirm extends Modal {
   constructor(
@@ -109,6 +115,7 @@ class Page extends CompatibleSettingsTab {
   pageVisible = false;
   openGeneration = 0;
   refreshWujieView?: () => void;
+  refreshSmartSyncView?: () => void;
 
   constructor(private pm: PM) {
     super(pm.app, pm);
@@ -129,6 +136,7 @@ class Page extends CompatibleSettingsTab {
     this.pageVisible = false;
     this.openGeneration++;
     this.refreshWujieView = undefined;
+    this.refreshSmartSyncView = undefined;
     this.query = "";
     this.resultMetaEls.clear();
   }
@@ -150,6 +158,7 @@ class Page extends CompatibleSettingsTab {
       this.refreshSettings();
       // Declarative settings updates do not always rerun a custom renderer.
       if (this.pageVisible) this.refreshWujieView?.();
+      if (this.pageVisible) this.refreshSmartSyncView?.();
     }
   }
   button(s: Setting, label: string, fn: () => Promise<void>) {
@@ -170,13 +179,14 @@ class Page extends CompatibleSettingsTab {
     return [
       {
         name: this.pageTitle(),
-        desc: "插件安装中心：在国内网络环境下，便捷搜索、安装和升级社区插件；管理无界同步版本与回退。",
+        desc: "插件安装中心：搜索、安装和升级社区插件；管理无界同步与 Smart Sync Alpha。",
         aliases: [
           "插件安装中心",
           "安装",
           "升级",
           "更新",
           "无界同步",
+          "Smart Sync",
           "Alpha",
           "回退",
         ],
@@ -303,14 +313,22 @@ class Page extends CompatibleSettingsTab {
 
         if (installed) {
           const protectedPlugin =
-            isManagerPlugin(e.id, this.pm.manifest.id) || e.id === "wujie-sync";
+            isManagerPlugin(e.id, this.pm.manifest.id) ||
+            e.id === "wujie-sync" ||
+            e.id === SMART_SYNC_ID;
           if (this.hasUpdate(installed) && !protectedPlugin)
             this.button(row, "加速更新", () => this.installCommunity(e));
           else
             row.addButton((button) =>
               button.setButtonText("已安装").setDisabled(true),
             );
-        } else this.button(row, "安装", () => this.installCommunity(e));
+        } else if (e.id === SMART_SYNC_ID)
+          row.addButton((button) =>
+            button
+              .setButtonText("请到 Smart Sync 专属区安装")
+              .setDisabled(true),
+          );
+        else this.button(row, "安装", () => this.installCommunity(e));
       }
     };
     const loadCatalog = () => {
@@ -392,6 +410,7 @@ class Page extends CompatibleSettingsTab {
         (m) =>
           !isManagerPlugin(m.id, this.pm.manifest.id) &&
           m.id !== "wujie-sync" &&
+          m.id !== SMART_SYNC_ID &&
           this.pm.state.catalog.some((e) => e.id === m.id),
       );
       let index = 0,
@@ -429,6 +448,7 @@ class Page extends CompatibleSettingsTab {
         (m) =>
           !isManagerPlugin(m.id, this.pm.manifest.id) &&
           m.id !== "wujie-sync" &&
+          m.id !== SMART_SYNC_ID &&
           this.hasUpdate(m),
       ).length;
       new Notice(
@@ -443,6 +463,7 @@ class Page extends CompatibleSettingsTab {
       (m) =>
         !isManagerPlugin(m.id, this.pm.manifest.id) &&
         m.id !== "wujie-sync" &&
+        m.id !== SMART_SYNC_ID &&
         this.hasUpdate(m),
     );
     if (this.updatesChecked && updatable.length) {
@@ -581,7 +602,70 @@ class Page extends CompatibleSettingsTab {
     };
     this.refreshWujieView = renderWujie;
     renderWujie();
+    const smartSyncContainer = el.createDiv({ cls: "pmcn-wujie-section" });
+    const renderSmartSync = () => {
+      smartSyncContainer.empty();
+      const current = manager(this.app).manifests[SMART_SYNC_ID];
+      const row = new Setting(smartSyncContainer)
+        .setClass("pmcn-installed-row")
+        .setName("Smart Sync · Alpha")
+        .setDesc(
+          "海外版测试渠道 · v" +
+            SMART_SYNC_ALPHA.version +
+            " · 需要 Obsidian 1.12.7+。海外账号、云端存储与国内版独立，请使用隔离测试库。" +
+            (current
+              ? " 当前已安装 v" + current.version + "。"
+              : " 尚未安装。"),
+        );
+      this.button(row, "安装 Alpha", () => this.installSmartSync());
+      const backup = this.pm.state.smartSyncBackup;
+      if (backup) {
+        this.button(row, "恢复安装前版本", async () => {
+          if (
+            !(await this.pm.confirm(
+              "恢复 Smart Sync 安装前代码？保留当前配置；不能撤销配置或云端数据迁移，安装前快照不代表已验证正常。",
+            ))
+          )
+            return;
+          await verifyBundle(backup.bundle, backup.sha256);
+          await this.pm.installer.install(SMART_SYNC_ID, backup.bundle);
+        });
+      }
+    };
+    this.refreshSmartSyncView = renderSmartSync;
+    renderSmartSync();
     if (opening) void this.refreshAlphaOnOpen(this.openGeneration);
+  }
+
+  async installSmartSync() {
+    if (
+      !(await this.pm.confirm(
+        "安装 Smart Sync " +
+          SMART_SYNC_ALPHA.version +
+          "（Alpha 测试渠道）？请在隔离测试库使用，海外账号与国内版独立。将校验 SHA-256，保留配置；首次安装后需在第三方插件设置中手动启用。更新保留原启用状态，代码回退不能撤销配置或云端数据迁移。",
+      ))
+    )
+      return;
+    const bundle = await downloadSmartSync(this.pm.net);
+    this.pm.installer.validate(SMART_SYNC_ID, bundle);
+    const current = manager(this.app).manifests[SMART_SYNC_ID];
+    if (current && !this.pm.state.smartSyncBackup) {
+      const previous = await readBundle(
+        this.app.vault.adapter,
+        this.app.vault.configDir + "/plugins/" + SMART_SYNC_ID,
+      );
+      this.pm.installer.validate(SMART_SYNC_ID, previous);
+      this.pm.state.smartSyncBackup = {
+        bundle: previous,
+        sha256: await hashes(previous),
+      };
+      await this.pm.save();
+    }
+    await this.pm.installer.install(
+      SMART_SYNC_ID,
+      bundle,
+      SMART_SYNC_ALPHA.version,
+    );
   }
 
   async refreshWujieAll() {
@@ -720,7 +804,11 @@ class Page extends CompatibleSettingsTab {
     }
   }
   async installCommunity(e: Entry) {
-    if (isManagerPlugin(e.id, this.pm.manifest.id) || e.id === "wujie-sync")
+    if (
+      isManagerPlugin(e.id, this.pm.manifest.id) ||
+      e.id === "wujie-sync" ||
+      e.id === SMART_SYNC_ID
+    )
       throw Error("请使用对应专属管理方式");
     const m = await this.pm.net.latest(e.repo, undefined, true);
     if (

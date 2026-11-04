@@ -1,11 +1,12 @@
 {
-  "pluginVersion": "0.1.27",
+  "pluginVersion": "0.1.28",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.27",
-    "date": "2026-10-29",
+    "pluginVersion": "0.1.28",
+    "date": "2026-11-04",
     "maintainerApproved": true,
-    "instruction": "你先发布，后面我统一测试；新地址能正常读取就发布一个新版本，并确认社区同步成功。"
+    "instruction": "把smart sync 也放到hub里面，阿尔法版本可供下载",
+    "scope": "Publish Hub's explicitly opted-in Alpha download entry. Native acceptance remains pending, as disclosed in README and the change record; this does not certify Smart Sync or Hub on any physical platform."
   },
   "devices": []
 }

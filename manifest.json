@@ -1,9 +1,9 @@
 {
   "id": "wujie-hub",
   "name": "Wujie Hub",
-  "version": "0.1.27",
+  "version": "0.1.28",
   "minAppVersion": "1.12.0",
-  "description": "Search, install, and update community plugins through download mirrors for users in China, and manage Wujie Sync releases.",
+  "description": "Search, install, and update community plugins through download mirrors for users in China, and manage Wujie Sync and Smart Sync Alpha releases.",
   "author": "Wujie Sync",
   "isDesktopOnly": false
 }

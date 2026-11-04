@@ -64,8 +64,69 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
   assert.ok(texts.includes("已安装插件"));
   assert.ok(texts.includes("Wujie Hub v0.1.22"));
   assert.ok(texts.includes("无界同步"));
+  assert.ok(texts.includes("Smart Sync · Alpha"));
+  assert.ok(texts.includes("安装 Alpha"));
   assert.equal(texts.filter((text) => text === "检查更新").length, 2);
   assert.equal(alphaRequests, 1);
+});
+
+test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {
+  const page = Object.create(Page.prototype);
+  let prompt;
+  page.pm = {
+    confirm: async (text) => {
+      prompt = text;
+      return false;
+    },
+    net: {
+      get: () => {
+        throw Error("unexpected download");
+      },
+    },
+    installer: {
+      install: () => {
+        throw Error("unexpected install");
+      },
+    },
+  };
+  await page.installSmartSync();
+  assert.match(prompt, /Alpha/);
+  assert.match(prompt, /隔离测试库/);
+  assert.match(prompt, /海外账号与国内版独立/);
+});
+
+test("generic community installation cannot bypass the Global Alpha channel", async () => {
+  const page = Object.create(Page.prototype);
+  page.pm = { manifest: { id: "wujie-hub" } };
+  await assert.rejects(
+    page.installCommunity({ id: "smart-sync-global" }),
+    /专属管理/,
+  );
+});
+
+test("Alpha download failure leaves installer and domestic rollback state untouched", async () => {
+  const page = Object.create(Page.prototype);
+  const state = {
+    verified: { "main.js": "domestic" },
+    installedWujieTag: "1.1.3",
+  };
+  const before = structuredClone(state);
+  page.pm = {
+    state,
+    confirm: async () => true,
+    net: {
+      get: async () => {
+        throw Error("offline");
+      },
+    },
+    installer: {
+      install: () => {
+        throw Error("unexpected install");
+      },
+    },
+  };
+  await assert.rejects(page.installSmartSync(), /offline/);
+  assert.deepEqual(state, before);
 });
 
 test("Obsidian 1.12 renders and refreshes without invoking the 1.13 API", async () => {

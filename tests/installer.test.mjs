@@ -66,6 +66,30 @@ const bundle = (v) => ({
   "main.js": "code " + v,
   "styles.css": null,
 });
+
+test("Global install preserves both regional identities and all non-release files", async () => {
+  const s = setup();
+  const cn = ".obsidian/plugins/wujie-sync/";
+  const global = ".obsidian/plugins/smart-sync-global/";
+  s.files.set(cn + "data.json", "domestic identity");
+  s.files.set(cn + "main.js", "domestic code");
+  s.files.set(global + "data.json", "overseas identity");
+  s.files.set(global + "private.json", "keep");
+  const release = {
+    ...bundle("1.1.4"),
+    "manifest.json": JSON.stringify({
+      id: "smart-sync-global",
+      version: "1.1.4",
+      minAppVersion: "1.12.7",
+    }),
+  };
+  await s.installer.install("smart-sync-global", release, "1.1.4");
+  assert.equal(s.files.get(cn + "main.js"), "domestic code");
+  assert.equal(s.files.get(cn + "data.json"), "domestic identity");
+  assert.equal(s.files.get(global + "data.json"), "overseas identity");
+  assert.equal(s.files.get(global + "private.json"), "keep");
+  assert.equal(s.plugins.enabledPlugins.has("smart-sync-global"), false);
+});
 test("install and update preserve user identity and disabled state", async () => {
   const s = setup();
   await s.installer.install("demo", bundle("1.0.0"));

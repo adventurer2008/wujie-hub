@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.27
+# Wujie Hub — 0.1.28
 
 插件安装中心
 
@@ -16,7 +16,7 @@ The page heading displays the currently loaded Wujie Hub version. If the native 
 2. For manual installation, place those three files in `<config-dir>/plugins/wujie-hub/`, normally `.obsidian/plugins/wujie-hub/`. Preserve any existing `data.json` and all other files when replacing release files.
 3. In Obsidian, open **Settings → Community plugins**, enable **Wujie Hub**, and open its settings page. You can also run the **打开插件管理** command (Open plugin manager).
 4. Enter a plugin name, description, or ID in the search field. Select **安装** (Install), review the version and trust prompt, and confirm the download. New plugins remain disabled until you enable them in Obsidian's Community plugins settings.
-5. Select **检查更新** (Check for updates) beside **已安装插件** (Installed plugins). Update an individual result with **加速更新** (Update through mirrors), or use **全部加速更新** (Update all through mirrors). Updates preserve each plugin's enabled state and configuration. The manager itself and Wujie Sync are excluded from ordinary updates.
+5. Select **检查更新** (Check for updates) beside **已安装插件** (Installed plugins). Update an individual result with **加速更新** (Update through mirrors), or use **全部加速更新** (Update all through mirrors). Updates preserve each plugin's enabled state and configuration. The manager itself, Wujie Sync, and Smart Sync are excluded from ordinary updates.
 6. In the Wujie Sync section, select **检查更新**, choose a version, then **安装所选版本** (Install selected version). To save a rollback target, use the more menu and **标记当前版本正常** (Mark current version as working) only after testing that version yourself. The rollback button restores code, preserving current configuration; it cannot undo configuration or remote data migrations.
 
 The manager changes only `manifest.json`, `main.js`, and `styles.css` in target plugins, with local release-file backups under `<config-dir>/pmcn-backups/`. Use Obsidian's own settings to enable, disable, or uninstall plugins. See the Chinese instructions below for recovery details and the source-build workflow.
@@ -44,11 +44,21 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 2. 手动安装时，将三个文件放入 `<配置目录>/plugins/wujie-hub/`，配置目录通常是 `.obsidian`。仅替换这三个发行文件，保留已有 `data.json` 及其他文件。
 3. 在 Obsidian 第三方插件设置中启用 Wujie Hub，然后打开它的设置页面。也可使用“打开插件管理”命令。
 4. 搜索名称、描述或 ID，输入即筛选，点击“安装”确认版本后下载。已安装的搜索结果只显示状态，不提供启用或卸载功能。新装插件默认禁用，请到官方第三方插件设置中启用。更新保留原启用状态。
-5. “已安装插件”区仅显示“检查更新”按钮；检查后只列出有更新的插件，支持单独或全部加速更新。启用、禁用和卸载使用官方界面。批量操作跳过管理器自身和 `wujie-sync`。
+5. “已安装插件”区仅显示“检查更新”按钮；检查后只列出有更新的插件，支持单独或全部加速更新。启用、禁用和卸载使用官方界面。批量操作跳过管理器自身、`wujie-sync` 和 `smart-sync-global`。
 
 从源码构建需要 Node.js、npm 和 Python 3.9+；Python 用于 Alpha 清单发布工具的自动测试。执行 `npm ci`、`npm run check`、`npm test`、`npm run build`，然后按上述方式复制生成的 `dist/wujie-hub` 文件夹，保留目标库已有的 `data.json`。
 
 默认卸载只移除发行文件，保留用户配置。安装、更新、卸载的发行文件备份保存在 `<配置目录>/pmcn-backups/`；备份是本机数据，不应上传或复制到其他设备。失败恢复也失败时，请停止继续安装，按提示找到快照恢复发行文件并重启。
+
+## Smart Sync Alpha
+
+The dedicated **Smart Sync · Alpha** section offers version **1.1.4** through an explicit test-channel confirmation. The original release version and files remain unchanged; Alpha is its Hub distribution channel. Requires Obsidian **1.12.7+**. Use an isolated test vault. Its overseas account and cloud storage are separate from Wujie Sync. It is excluded from ordinary community and bulk updates. The Smart Sync Community listing remains archived.
+
+Hub downloads all three files from the pinned [Global GitHub release](https://github.com/adventurer2008/obsidian-smart-sync-release-global/releases/tag/1.1.4), through its existing GitHub mirrors with direct fallback, and checks embedded SHA-256 hashes before installation. Opening settings does not download this package. First installs remain disabled. Existing configuration and enabled state are preserved. On updates, an independent installation-before snapshot is retained for code rollback; it is not labeled user-verified and cannot undo configuration or remote migrations. Nothing is installed automatically into any vault.
+
+在设置底部的 **Smart Sync · Alpha** 点击“安装 Alpha”，确认测试提示后安装。使用独立测试库；首次安装后在官方第三方插件设置手动启用。海外服务与国内无界同步的账号和存储独立。更新前保存的代码可通过“恢复安装前版本”还原，国内回退目标保持独立。当前固定提供 1.1.4，后续候选需更新 Hub 中的版本及摘要，不跟随 GitHub latest 自动升级。
+
+Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机验收均未完成；自动化校验不替代真机验收。该入口为明确选择的 Alpha 测试分发，不代表全平台正式验收通过。
 
 ## 无界同步
 
