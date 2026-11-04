@@ -64,9 +64,21 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
   assert.ok(texts.includes("已安装插件"));
   assert.ok(texts.includes("Wujie Hub v0.1.22"));
   assert.ok(texts.includes("无界同步"));
-  assert.ok(texts.includes("Smart Sync · Alpha"));
-  assert.ok(texts.includes("安装 Alpha"));
-  assert.equal(texts.filter((text) => text === "检查更新").length, 2);
+  assert.ok(texts.includes("Smart Sync"));
+  assert.ok(texts.includes("历史版本"));
+  assert.ok(texts.includes("安装所选版本"));
+  assert.ok(texts.includes("1.1.4"));
+  assert.equal(texts.filter((text) => text === "检查更新").length, 3);
+  assert.equal(texts.includes("安装 Alpha"), false);
+  assert.equal(page.smartSyncSelected, "");
+  assert.equal(
+    texts.filter(
+      (text) =>
+        text ===
+        "Sync notes, attachments and selected settings with compression and client-side encryption.",
+    ).length,
+    2,
+  );
   assert.equal(alphaRequests, 1);
 });
 

@@ -9,8 +9,53 @@ await build({
   platform: "node",
   alias: { obsidian: "./tests/obsidian-stub.ts" },
 });
-const { downloadSmartSync, SMART_SYNC_ALPHA } =
-  await import("../test-output/smart-sync.mjs");
+const {
+  downloadSmartSync,
+  SMART_SYNC_ALPHA,
+  checkSmartSyncAlpha,
+  SMART_SYNC_ALPHA_FEED,
+} = await import("../test-output/smart-sync.mjs");
+
+test("Smart Sync update checks use the Global index and validate pinned digests", async () => {
+  const release = {
+    version: "1.1.4",
+    channel: "Alpha",
+    sha256: SMART_SYNC_ALPHA.sha256,
+  };
+  assert.match(
+    await checkSmartSyncAlpha({
+      json: async (url) => {
+        assert.equal(url, SMART_SYNC_ALPHA_FEED);
+        return { pluginId: "smart-sync-global", releases: [release] };
+      },
+    }),
+    /最新版本 1.1.4/,
+  );
+  await assert.rejects(
+    checkSmartSyncAlpha({
+      json: async () => ({ pluginId: "wujie-sync", releases: [release] }),
+    }),
+    /格式错误/,
+  );
+  await assert.rejects(
+    checkSmartSyncAlpha({
+      json: async () => ({
+        pluginId: "smart-sync-global",
+        releases: [{ ...release, sha256: {} }],
+      }),
+    }),
+    /不匹配/,
+  );
+  assert.match(
+    await checkSmartSyncAlpha({
+      json: async () => ({
+        pluginId: "smart-sync-global",
+        releases: [release, { version: "1.1.5" }],
+      }),
+    }),
+    /更新 Hub/,
+  );
+});
 
 test("Global Alpha downloads only the pinned overseas release and rejects altered files", async () => {
   const requested = [];

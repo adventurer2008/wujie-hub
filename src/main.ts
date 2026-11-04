@@ -6,6 +6,7 @@ import {
   SMART_SYNC_ID,
   SMART_SYNC_ALPHA,
   downloadSmartSync,
+  checkSmartSyncAlpha,
 } from "./smart-sync";
 import {
   manager,
@@ -33,8 +34,14 @@ interface State {
   wujieReleases?: WujieRelease[];
   installedWujieTag?: string;
   feedUrl?: string;
-  smartSyncBackup?: { bundle: Bundle; sha256: Record<string, string> };
+  smartSyncBackup?: {
+    bundle: Bundle;
+    sha256: Record<string, string>;
+    verifiedAt?: string;
+  };
 }
+const SYNC_DESCRIPTION =
+  "Sync notes, attachments and selected settings with compression and client-side encryption.";
 class Confirm extends Modal {
   constructor(
     app: Plugin["app"],
@@ -116,6 +123,7 @@ class Page extends CompatibleSettingsTab {
   openGeneration = 0;
   refreshWujieView?: () => void;
   refreshSmartSyncView?: () => void;
+  smartSyncSelected = "";
 
   constructor(private pm: PM) {
     super(pm.app, pm);
@@ -212,7 +220,7 @@ class Page extends CompatibleSettingsTab {
       .setDesc("插件安装中心")
       .setHeading();
     heading.descEl.createDiv({
-      text: "在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。",
+      text: "便捷搜索、安装和升级 Obsidian 官方社区插件，以及管理无界同步与 Smart Sync 版本。",
     });
     if (this.status) el.createDiv({ cls: "pmcn-status", text: this.status });
 
@@ -500,10 +508,7 @@ class Page extends CompatibleSettingsTab {
           " 作者：" +
           (current?.author || "lihy"),
       });
-      wujieRow.setDesc(
-        current?.description ||
-          "在不同设备间同步笔记、附件和设置，支持测试版本安装与回退。",
-      );
+      wujieRow.setDesc(SYNC_DESCRIPTION);
       if (this.alphaSourceWarning)
         el.createDiv({ cls: "pmcn-status", text: this.alphaSourceWarning });
 
@@ -608,33 +613,123 @@ class Page extends CompatibleSettingsTab {
       const current = manager(this.app).manifests[SMART_SYNC_ID];
       const row = new Setting(smartSyncContainer)
         .setClass("pmcn-installed-row")
-        .setName("Smart Sync · Alpha")
-        .setDesc(
-          "海外版测试渠道 · v" +
-            SMART_SYNC_ALPHA.version +
-            " · 需要 Obsidian 1.12.7+。海外账号、云端存储与国内版独立，请使用隔离测试库。" +
-            (current
-              ? " 当前已安装 v" + current.version + "。"
-              : " 尚未安装。"),
-        );
-      this.button(row, "安装 Alpha", () => this.installSmartSync());
+        .setClass("pmcn-wujie-row");
+      row.nameEl.createSpan({ cls: "pmcn-plugin-name", text: "Smart Sync" });
+      row.nameEl.createSpan({
+        cls: "pmcn-plugin-meta",
+        text:
+          (current ? " v" + current.version : " · 未安装") +
+          " 作者：" +
+          (current?.author || "lihy"),
+      });
+      row.setDesc(SYNC_DESCRIPTION);
+      row.addExtraButton((button) =>
+        button
+          .setIcon("more-vertical")
+          .setTooltip("回退版本")
+          .setDisabled(this.working)
+          .onClick(() => {
+            new Menu()
+              .addItem((item) =>
+                item
+                  .setTitle("标记当前版本正常")
+                  .setDisabled(!current)
+                  .onClick(
+                    () =>
+                      void this.task(async () => {
+                        if (
+                          await this.pm.confirm(
+                            "确认已在本机验证当前 Smart Sync 工作正常？保存代码作为回退目标，保留本机配置。",
+                          )
+                        )
+                          await this.markSmartSyncVerified();
+                      }),
+                  ),
+              )
+              .showAtPosition({
+                x: button.extraSettingsEl.getBoundingClientRect().left,
+                y: button.extraSettingsEl.getBoundingClientRect().bottom,
+              });
+          }),
+      );
+      this.button(row, "检查更新", async () => {
+        new Notice(await checkSmartSyncAlpha(this.pm.net));
+      });
       const backup = this.pm.state.smartSyncBackup;
       if (backup) {
-        this.button(row, "恢复安装前版本", async () => {
-          if (
-            !(await this.pm.confirm(
-              "恢复 Smart Sync 安装前代码？保留当前配置；不能撤销配置或云端数据迁移，安装前快照不代表已验证正常。",
-            ))
-          )
-            return;
-          await verifyBundle(backup.bundle, backup.sha256);
-          await this.pm.installer.install(SMART_SYNC_ID, backup.bundle);
+        const version = manifestVersion(backup.bundle["manifest.json"]!);
+        this.button(
+          row,
+          backup.verifiedAt ? "回退至 " + version : "恢复安装前版本",
+          async () => {
+            if (
+              !(await this.pm.confirm(
+                "恢复 Smart Sync 代码？保留当前配置；不能撤销配置或云端数据迁移。" +
+                  (backup.verifiedAt
+                    ? "目标已由你在本机确认正常。"
+                    : "安装前快照不代表已验证正常。"),
+              ))
+            )
+              return;
+            await verifyBundle(backup.bundle, backup.sha256);
+            await this.pm.installer.install(SMART_SYNC_ID, backup.bundle);
+          },
+        );
+        row.descEl.createDiv({
+          cls: "pmcn-plugin-meta",
+          text:
+            "回退目标：" +
+            version +
+            (backup.verifiedAt
+              ? "（本机已确认正常；仅恢复代码）"
+              : "（安装前快照；未确认正常）"),
         });
       }
+      const choices = new Setting(smartSyncContainer)
+        .setName("历史版本")
+        .setClass("pmcn-release-picker");
+      choices.addDropdown((dropdown) => {
+        dropdown.selectEl.createEl("option", {
+          text: "请选择版本",
+          attr: { value: "" },
+        });
+        const group = dropdown.selectEl.createEl("optgroup", {
+          attr: { label: "测试版" },
+        });
+        group.createEl("option", {
+          text: SMART_SYNC_ALPHA.version,
+          attr: { value: SMART_SYNC_ALPHA.version },
+        });
+        dropdown
+          .setValue(this.smartSyncSelected)
+          .setDisabled(this.working)
+          .onChange((value) => {
+            this.smartSyncSelected = value;
+          });
+      });
+      this.button(choices, "安装所选版本", async () => {
+        if (this.smartSyncSelected !== SMART_SYNC_ALPHA.version)
+          throw Error("请选择可用版本");
+        await this.installSmartSync();
+      });
     };
     this.refreshSmartSyncView = renderSmartSync;
     renderSmartSync();
     if (opening) void this.refreshAlphaOnOpen(this.openGeneration);
+  }
+
+  async markSmartSyncVerified() {
+    const bundle = await readBundle(
+      this.app.vault.adapter,
+      this.app.vault.configDir + "/plugins/" + SMART_SYNC_ID,
+    );
+    this.pm.installer.validate(SMART_SYNC_ID, bundle);
+    this.pm.state.smartSyncBackup = {
+      bundle,
+      sha256: await hashes(bundle),
+      verifiedAt: new Date().toISOString(),
+    };
+    await this.pm.save();
   }
 
   async installSmartSync() {

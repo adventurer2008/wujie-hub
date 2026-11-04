@@ -98,6 +98,12 @@ export class Setting {
     callback(new Control(this.settingEl.createDiv()));
     return this;
   }
+  addDropdown(callback: (control: Control) => unknown) {
+    const control = new Control(this.settingEl.createDiv());
+    this.settingEl.children.push(control.selectEl);
+    callback(control);
+    return this;
+  }
   addExtraButton(callback: (control: Control) => unknown) {
     callback(new Control(this.settingEl.createDiv()));
     return this;

@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.28
+# Wujie Hub — 0.1.29
 
 插件安装中心
 
@@ -52,11 +52,11 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 ## Smart Sync Alpha
 
-The dedicated **Smart Sync · Alpha** section offers version **1.1.4** through an explicit test-channel confirmation. The original release version and files remain unchanged; Alpha is its Hub distribution channel. Requires Obsidian **1.12.7+**. Use an isolated test vault. Its overseas account and cloud storage are separate from Wujie Sync. It is excluded from ordinary community and bulk updates. The Smart Sync Community listing remains archived.
+The dedicated **Smart Sync** section offers version **1.1.4** through an explicit test-channel confirmation. It uses the same row, English description, update check, history picker and selected-version installation controls as Wujie Sync. Version 1.1.4 is grouped under **测试版** (Test releases) and requires explicit selection. Its more menu can mark the current version as working after user confirmation; this Global rollback target is independent from the domestic target. The original release version and files remain unchanged; Alpha is its Hub distribution channel. Requires Obsidian **1.12.7+**. Use an isolated test vault. Its overseas account and cloud storage are separate from Wujie Sync. It is excluded from ordinary community and bulk updates. The Smart Sync Community listing remains archived.
 
 Hub downloads all three files from the pinned [Global GitHub release](https://github.com/adventurer2008/obsidian-smart-sync-release-global/releases/tag/1.1.4), through its existing GitHub mirrors with direct fallback, and checks embedded SHA-256 hashes before installation. Opening settings does not download this package. First installs remain disabled. Existing configuration and enabled state are preserved. On updates, an independent installation-before snapshot is retained for code rollback; it is not labeled user-verified and cannot undo configuration or remote migrations. Nothing is installed automatically into any vault.
 
-在设置底部的 **Smart Sync · Alpha** 点击“安装 Alpha”，确认测试提示后安装。使用独立测试库；首次安装后在官方第三方插件设置手动启用。海外服务与国内无界同步的账号和存储独立。更新前保存的代码可通过“恢复安装前版本”还原，国内回退目标保持独立。当前固定提供 1.1.4，后续候选需更新 Hub 中的版本及摘要，不跟随 GitHub latest 自动升级。
+在设置底部的 **Smart Sync** 使用与无界同步一致的名称、版本/作者、英文描述、检查更新和历史版本控件。选择“测试版”中的 1.1.4，再点击“安装所选版本”，确认测试提示后安装。使用独立测试库；首次安装后在官方第三方插件设置手动启用。海外服务与国内无界同步的账号和存储独立。更新前保存的代码可通过“恢复安装前版本”还原；更多菜单“标记当前版本正常”须本人验证后确认，随后显示“回退至版本号”。国内回退目标保持独立。当前固定提供 1.1.4，检查更新验证海外下载清单，其他候选需更新 Hub 中的版本及摘要，不跟随 GitHub latest 自动升级。
 
 Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机验收均未完成；自动化校验不替代真机验收。该入口为明确选择的 Alpha 测试分发，不代表全平台正式验收通过。
 
