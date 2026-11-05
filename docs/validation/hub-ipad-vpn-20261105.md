@@ -22,3 +22,12 @@ No UI/native API, vault/credential/configuration migration, content/key/progress
 ## Release authorization — 0.1.31
 
 After disclosure, the user explicitly requested publication with “那发布出去吧” on 2026-11-05. Prepare a new immutable 0.1.31 release; retain all prior assets/tags. This authorizes release before new native fallback acceptance, not a declaration that it passed. Existing CORS/VPN limits remain in release notes. No server/Caddy/domain/R2 changes are part of this release. Publication, artifact hashes and Community version will be recorded only after verification.
+
+## Published receipt — 2026-11-05
+
+- Release: https://github.com/adventurer2008/wujie-hub/releases/tag/0.1.31 ; immutable source 97570db5b68879cfddbfe579656aa7c3195fedf9.
+- Local final candidate: metadata/platform/identity gates, typecheck, Obsidian1.12 compile, 53 tests with no skip and build passed. GitHub Checks41982397976 (Windows/macOS/Linux Node automation) and Release41982403915 succeeded. These are not native-device acceptance.
+- Anonymous HTTPS downloads of main.js, manifest.json and styles.css matched the local build byte-for-byte and GitHub asset digests. SHA256: main.js 2ac79acea18c4aea3626f825a82af18b47a8c0dec2b038f5bbce7e795d8b151b ; manifest.json f37e559a7e25cd949f2c3bbf676a3239636113d1077a19e673c9194a0d51f670 ; styles.css 5286b2d610bd8dfd7bbfef52c43e396b935e6af1ff344a6c4c00fbb7c6a87c3e . Local receipt outside Git: C:/Users/lihy/.config/smart-sync-global/hub031-20261105/publication.json.
+- Added explicit English release notes describing native-first bounded fallback, preserved validation, pending new native acceptance and the public-static CORS/VPN limitations. No server changes are claimed.
+- Used Community management Check for new releases. Review for0.1.31/97570db completed: asset attestations, dependencies, obfuscation and byte-for-byte main.js build reproduction passed. Public https://community.obsidian.md/plugins/wujie-hub verified Current version0.1.31, Health Excellent, Review Passed.
+- Prior assets/tags preserved. No local user vault installation or data/configuration mutation was performed. New native fallback and cross-origin static download behavior remain subject to the limits above.
