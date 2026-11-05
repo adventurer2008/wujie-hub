@@ -37,7 +37,11 @@ export class Network {
       // Different native/WebView network stacks may behave differently on mobile.
       // Never send community/proxy URLs or credentials through this fallback.
       if (
-        target.origin !== "https://user.wujiesync.cc" ||
+        !["https://user.wujiesync.cc", "https://smartsync.cc"].includes(
+          target.origin,
+        ) ||
+        target.username ||
+        target.password ||
         !target.pathname.startsWith("/download/") ||
         typeof window.fetch !== "function"
       )

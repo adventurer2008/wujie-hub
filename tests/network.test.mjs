@@ -40,6 +40,73 @@ test("official download transport failure uses credential-free same-host WebView
   }
 });
 
+test("Global native transport failure falls back for official feed and release files only", async () => {
+  const original = globalThis.fetch;
+  const requests = [];
+  globalThis.__pmcnRequest = async () => {
+    throw Error("synthetic iPad native transport failure");
+  };
+  globalThis.fetch = async (url, options) => {
+    requests.push(url);
+    assert.equal(options.credentials, "omit");
+    assert.equal(options.redirect, "error");
+    assert.equal(options.referrerPolicy, "no-referrer");
+    assert.equal(options.cache, "no-store");
+    assert.ok(options.signal);
+    return { status: 200, text: async () => '{"releases":[]}' };
+  };
+  try {
+    for (const path of [
+      "releases.json",
+      "alpha/1.1.5-alpha.4/manifest.json",
+      "stable/1.1.5/main.js",
+      "stable/1.1.5/styles.css",
+    ]) {
+      const url = "https://smartsync.cc/download/" + path;
+      assert.deepEqual(await new Network().json(url), { releases: [] });
+    }
+    assert.equal(requests.length, 4);
+    for (const url of [
+      "https://smartsync.cc/auth/login",
+      "https://smartsync.cc/download-foreign/releases.json",
+      "https://pay.smartsync.cc/download/releases.json",
+      "https://staging-pay.smartsync.cc/download/releases.json",
+      "https://smartsync.cc.evil.test/download/releases.json",
+      "https://smartsync.cc:8443/download/releases.json",
+      "https://user:pass@smartsync.cc/download/releases.json",
+      "https://github.com/owner/repo/releases/download/1.0.0/manifest.json",
+    ]) await assert.rejects(new Network().get(url), /native transport failure/);
+    assert.equal(requests.length, 4, "no account, foreign or proxy fallback");
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("Global fallback preserves native HTTP/JSON failures and reports both transport errors", async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw Error("synthetic WebView blocked"); };
+  const url = "https://smartsync.cc/download/releases.json";
+  try {
+    for (const response of [
+      { status: 503, text: "unavailable" },
+      { status: 200, text: "invalid JSON" },
+    ]) {
+      globalThis.__pmcnRequest = async () => response;
+      await assert.rejects(new Network().json(url));
+    }
+    assert.equal(calls, 0);
+    globalThis.__pmcnRequest = async () => { throw Error("synthetic native blocked"); };
+    await assert.rejects(new Network().json(url), error =>
+      /原生请求：.*native blocked/.test(error.message) && /浏览器请求：.*WebView blocked/.test(error.message));
+    assert.equal(calls, 1);
+    globalThis.fetch = async () => ({status: 503, text: async () => "unavailable"});
+    await assert.rejects(new Network().json(url), /HTTP 503/);
+    globalThis.fetch = async () => ({status: 200, text: async () => "invalid JSON"});
+    await assert.rejects(new Network().json(url), /SyntaxError/);
+  } finally { globalThis.fetch = original; }
+});
+
 test("fallback does not bypass HTTP or JSON failures and never targets the legacy host", async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () => {
