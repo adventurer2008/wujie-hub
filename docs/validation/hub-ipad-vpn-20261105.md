@@ -17,4 +17,8 @@ Windows Node26.12.1: npm run check, check:compat, all 53 tests (zero skip), npm 
 | iPhone/iOS | Existing conditional support; native new fallback unverified |
 | iPad/iPadOS | User confirms existing Hub refresh works with VPN off; new fallback unverified |
 
-No UI/native API, vault/credential/configuration migration, content/key/progress/source-mtime changes. Network error occurs before installation; old cache is retained. Narrow/touch controls unchanged, no layout change. Lock/background/restart/disconnect/native mixed-version install acceptance is not inferred. Candidate rollback is program code only and never modifies business data. Release remains 0.1.30; no public assets/tag overwritten.
+No UI/native API, vault/credential/configuration migration, content/key/progress/source-mtime changes. Network error occurs before installation; old cache is retained. Narrow/touch controls unchanged, no layout change. Lock/background/restart/disconnect/native mixed-version install acceptance is not inferred. Candidate rollback is program code only and never modifies business data. Initial diagnosis left 0.1.30 unchanged; no public assets/tag overwritten.
+
+## Release authorization — 0.1.31
+
+After disclosure, the user explicitly requested publication with “那发布出去吧” on 2026-11-05. Prepare a new immutable 0.1.31 release; retain all prior assets/tags. This authorizes release before new native fallback acceptance, not a declaration that it passed. Existing CORS/VPN limits remain in release notes. No server/Caddy/domain/R2 changes are part of this release. Publication, artifact hashes and Community version will be recorded only after verification.

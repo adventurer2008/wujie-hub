@@ -1,12 +1,12 @@
 {
-  "pluginVersion": "0.1.30",
+  "pluginVersion": "0.1.31",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.30",
-    "date": "2026-11-04",
+    "pluginVersion": "0.1.31",
+    "date": "2026-11-05",
     "maintainerApproved": true,
-    "instruction": "可以，发布吧",
-    "scope": "Publish reviewed independent sync cards and dynamic stable/Alpha release discovery. Native acceptance remains pending as disclosed with the preview; no physical platform pass is claimed."
+    "instruction": "那发布出去吧",
+    "scope": "Publish the disclosed Global public-download transport fallback. New fallback native-device acceptance remains deferred; current static download CORS limitation and VPN-off recovery are disclosed. No server/Caddy/domain/R2 change or VPN bypass is claimed."
   },
   "devices": []
 }
