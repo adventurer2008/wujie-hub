@@ -194,7 +194,9 @@ test("1.12 opens all three first-party update checks once and places installatio
   let alphaRequests = 0;
   const app = {
     plugins: {
-      manifests: {},
+      manifests: {
+        "wujie-translate": { id: "wujie-translate", version: "0.1.1", author: "lihy" },
+      },
       plugins: {},
       enabledPlugins: new Set(),
       loadManifests() {},
@@ -254,13 +256,22 @@ test("1.12 opens all three first-party update checks once and places installatio
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
   const cards = elements.filter(el => el.classes.has("pmcn-sync-section"));
-  for (const [index, label] of ["无界同步版本", "无界译版本", "Smart Sync 版本"].entries()) {
-    const actions = cards[index].children[0].children.at(-1);
+  const syncDescription = "Sync notes, attachments and selected settings with compression and client-side encryption.";
+  const translationDescription = "Translate selected text and look up English words with hosted bilingual dictionaries.";
+  for (const [index, [name, metadata, description]] of [
+    ["无界同步", " · 未安装 作者：lihy", syncDescription],
+    ["无界译", " v0.1.1 作者：lihy", translationDescription],
+    ["Smart Sync", " · 未安装 作者：lihy", syncDescription],
+  ].entries()) {
+    const [title, desc, actions] = cards[index].children[0].children;
+    assert.ok(title.children.some(el => el.classes.has("pmcn-plugin-name") && el.text === name));
+    assert.ok(title.children.some(el => el.classes.has("pmcn-plugin-meta") && el.text === metadata));
+    assert.equal(desc.text, description);
     assert.equal(actions.children[0].text, "检查更新");
     const picker = actions.children[1];
     assert.ok(picker.classes.has("pmcn-release-picker"));
     const controls = picker.children.at(-1).children;
-    assert.ok(controls.some(el => el.attributes.get("aria-label") === label));
+    assert.ok(controls.some(el => el.attributes.get("aria-label") === name + " 版本"));
     assert.equal(controls.filter(el => el.text === "安装所选版本").length, 1);
   }
   assert.equal(page.translateSelected, "Stable:0.1.0");
@@ -271,6 +282,12 @@ test("1.12 opens all three first-party update checks once and places installatio
   page.translateReleases.Alpha.version = "0.1.1-alpha.2";
   page.refreshTranslateView();
   assert.equal(page.translateSelected, "Stable:0.1.0");
+  delete app.plugins.manifests["wujie-translate"];
+  page.translateReleases = {};
+  page.refreshTranslateView();
+  const [title, desc] = cards[1].children[0].children;
+  assert.ok(title.children.some(el => el.text === " · 未安装 作者：lihy"));
+  assert.equal(desc.text, translationDescription);
   page.renderPage(root);
   assert.equal(alphaRequests, 5);
 });

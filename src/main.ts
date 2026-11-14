@@ -35,6 +35,15 @@ interface State {
 }
 const SYNC_DESCRIPTION =
   "Sync notes, attachments and selected settings with compression and client-side encryption.";
+const FIRST_PARTY_PLUGINS = {
+  "wujie-sync": { name: "无界同步", author: "lihy", description: SYNC_DESCRIPTION },
+  [TRANSLATE_ID]: {
+    name: "无界译",
+    author: "lihy",
+    description: "Translate selected text and look up English words with hosted bilingual dictionaries.",
+  },
+  [SMART_SYNC_ID]: { name: "Smart Sync", author: "lihy", description: SYNC_DESCRIPTION },
+};
 class Confirm extends Modal {
   constructor(
     app: Plugin["app"],
@@ -195,17 +204,43 @@ class Page extends CompatibleSettingsTab {
         .onClick(() => void this.task(fn)),
     );
   }
-  releasePicker(
-    row: Setting,
-    name: string,
-    releases: ReadonlyArray<Pick<WujieRelease, "channel" | "version"> & { value: string }>,
-    selected: string,
-    onSelect: (value: string) => void,
-    install: () => Promise<void>,
+  renderFirstPartyCard(
+    container: HTMLElement,
+    id: keyof typeof FIRST_PARTY_PLUGINS,
+    options: {
+      warning: string;
+      check: () => Promise<void>;
+      releases: ReadonlyArray<Pick<WujieRelease, "channel" | "version"> & { value: string }>;
+      selected: string;
+      onSelect: (value: string) => void;
+      install: () => Promise<void>;
+      emptyMessage?: string;
+    },
   ) {
+    const { name, author, description } = FIRST_PARTY_PLUGINS[id];
+    const current = manager(this.app).manifests[id];
+    container.empty();
+    const row = new Setting(container)
+      .setClass("pmcn-installed-row")
+      .setClass("pmcn-wujie-row")
+      .setDesc(description);
+    row.nameEl.createSpan({ cls: "pmcn-plugin-name", text: name });
+    row.nameEl.createSpan({
+      cls: "pmcn-plugin-meta",
+      text: (current ? " v" + current.version : " · 未安装") +
+        " 作者：" + (current?.author || author),
+    });
+    if (options.warning)
+      container.createDiv({ cls: "pmcn-status", text: options.warning });
+    this.button(row, "检查更新", options.check);
+    if (!options.releases.length) {
+      if (options.emptyMessage)
+        container.createDiv({ cls: "pmcn-plugin-meta", text: options.emptyMessage });
+      return;
+    }
     const choices = new Setting(row.controlEl).setClass("pmcn-release-picker");
     choices.addDropdown((dropdown) => {
-      if (!selected)
+      if (!options.selected)
         dropdown.selectEl.createEl("option", {
           text: "请选择版本",
           attr: { value: "" },
@@ -214,7 +249,7 @@ class Page extends CompatibleSettingsTab {
         ["Stable", "稳定版"],
         ["Alpha", "测试版"],
       ] as const) {
-        const versions = releases.filter((release) => release.channel === channel);
+        const versions = options.releases.filter((release) => release.channel === channel);
         if (!versions.length) continue;
         const group = dropdown.selectEl.createEl("optgroup", { attr: { label } });
         for (const release of versions)
@@ -223,10 +258,10 @@ class Page extends CompatibleSettingsTab {
             attr: { value: release.value },
           });
       }
-      dropdown.selectEl.setAttribute("aria-label", name + "版本");
-      dropdown.setValue(selected).setDisabled(this.working).onChange(onSelect);
+      dropdown.selectEl.setAttribute("aria-label", name + " 版本");
+      dropdown.setValue(options.selected).setDisabled(this.working).onChange(options.onSelect);
     });
-    this.button(choices, "安装所选版本", install);
+    this.button(choices, "安装所选版本", options.install);
   }
   renderLegacy(): void {
     this.renderPage(this.containerEl);
@@ -238,13 +273,14 @@ class Page extends CompatibleSettingsTab {
     return [
       {
         name: this.pageTitle(),
-        desc: "插件安装中心：搜索、安装和升级社区插件；管理无界同步与 Smart Sync 版本。",
+        desc: "插件安装中心：搜索、安装和升级社区插件；管理无界同步、无界译和 Smart Sync 版本。",
         aliases: [
           "插件安装中心",
           "安装",
           "升级",
           "更新",
           "无界同步",
+          "无界译",
           "Smart Sync",
           "Alpha",
           "回退",
@@ -274,7 +310,7 @@ class Page extends CompatibleSettingsTab {
       .setDesc("插件安装中心")
       .setHeading();
     heading.descEl.createDiv({
-      text: "便捷搜索、安装和升级 Obsidian 官方社区插件，以及管理无界同步与 Smart Sync 版本。",
+      text: "便捷搜索、安装和升级 Obsidian 官方社区插件，以及管理无界同步、无界译和 Smart Sync 版本。",
     });
     if (this.status) el.createDiv({ cls: "pmcn-status", text: this.status });
 
@@ -554,74 +590,41 @@ class Page extends CompatibleSettingsTab {
     }
     const wujieContainer = el.createDiv({ cls: "pmcn-sync-section" });
     const renderWujie = () => {
-      const el = wujieContainer;
-      el.empty();
-      const current = p.manifests["wujie-sync"];
-      const wujieRow = new Setting(el)
-        .setClass("pmcn-installed-row")
-        .setClass("pmcn-wujie-row");
-      wujieRow.nameEl.createSpan({ cls: "pmcn-plugin-name", text: "无界同步" });
-      wujieRow.nameEl.createSpan({
-        cls: "pmcn-plugin-meta",
-        text:
-          (current ? " v" + current.version : " · 未安装") +
-          " 作者：" +
-          (current?.author || "lihy"),
-      });
-      wujieRow.setDesc(SYNC_DESCRIPTION);
-      if (this.alphaSourceWarning)
-        el.createDiv({ cls: "pmcn-status", text: this.alphaSourceWarning });
-
-      this.button(wujieRow, "检查更新", async () => {
-        await this.refreshWujieAll();
-      });
       const recent = recentReleases(this.releases);
-      if (recent.length) {
-        this.selectDefaultRelease();
-        this.releasePicker(
-          wujieRow,
-          "无界同步",
-          recent.map((release) => ({ ...release, value: release.version })),
-          this.selected,
-          (value) => {
-            this.selected = value;
-            this.manualSelection = true;
-          },
-          async () => {
-            const release = this.releases.find((entry) => entry.version === this.selected);
-            if (!release) throw Error("请选择可用版本");
-            await this.installWujie(release);
-          },
-        );
-      }
+      this.selectDefaultRelease();
+      this.renderFirstPartyCard(wujieContainer, "wujie-sync", {
+        warning: this.alphaSourceWarning,
+        check: () => this.refreshWujieAll(),
+        releases: recent.map((release) => ({ ...release, value: release.version })),
+        selected: this.selected,
+        onSelect: (value) => {
+          this.selected = value;
+          this.manualSelection = true;
+        },
+        install: async () => {
+          const release = this.releases.find((entry) => entry.version === this.selected);
+          if (!release) throw Error("请选择可用版本");
+          await this.installWujie(release);
+        },
+      });
     };
     this.refreshWujieView = renderWujie;
     renderWujie();
     const translateContainer = el.createDiv({ cls: "pmcn-sync-section" });
     this.refreshTranslateView = () => {
-      translateContainer.empty();
-      const installed = manager(this.app).manifests[TRANSLATE_ID];
-      const row = new Setting(translateContainer)
-        .setClass("pmcn-installed-row")
-        .setClass("pmcn-wujie-row")
-        .setName("无界译")
-        .setDesc("国内 · " + (installed ? "已安装 " + installed.version : "未安装"));
-      if (this.translateWarning) row.descEl.createDiv({ text: this.translateWarning });
-      this.button(row, "检查更新", () => this.refreshTranslateReleases());
       const releases = (["Stable", "Alpha"] as const).flatMap((channel) => {
         const release = this.translateReleases[channel];
         return release ? [{ channel, version: release.version, value: channel + ":" + release.version }] : [];
       });
-      if (!releases.length) return;
       if (!releases.some((release) => release.value === this.translateSelected))
         this.translateSelected = releases.find((release) => release.channel === "Stable")?.value ?? "";
-      this.releasePicker(
-        row,
-        "无界译",
+      this.renderFirstPartyCard(translateContainer, TRANSLATE_ID, {
+        warning: this.translateWarning,
+        check: () => this.refreshTranslateReleases(),
         releases,
-        this.translateSelected,
-        (value) => { this.translateSelected = value; },
-        async () => {
+        selected: this.translateSelected,
+        onSelect: (value) => { this.translateSelected = value; },
+        install: async () => {
           const selected = releases.find((release) => release.value === this.translateSelected);
           if (!selected) throw Error("请选择可用版本");
           const latest = await loadTranslateRelease(this.pm.net, selected.channel);
@@ -630,60 +633,34 @@ class Page extends CompatibleSettingsTab {
           const bundle = await downloadTranslateRelease(this.pm.net, latest);
           await this.pm.installer.install(TRANSLATE_ID, bundle, latest.version);
         },
-      );
+      });
     };
     this.refreshTranslateView();
     const smartSyncContainer = el.createDiv({ cls: "pmcn-sync-section" });
     const renderSmartSync = () => {
-      smartSyncContainer.empty();
-      const current = manager(this.app).manifests[SMART_SYNC_ID];
-      const row = new Setting(smartSyncContainer)
-        .setClass("pmcn-installed-row")
-        .setClass("pmcn-wujie-row");
-      row.nameEl.createSpan({ cls: "pmcn-plugin-name", text: "Smart Sync" });
-      row.nameEl.createSpan({
-        cls: "pmcn-plugin-meta",
-        text:
-          (current ? " v" + current.version : " · 未安装") +
-          " 作者：" +
-          (current?.author || "lihy"),
-      });
-      row.setDesc(SYNC_DESCRIPTION);
-      if (this.smartSyncWarning)
-        smartSyncContainer.createDiv({
-          cls: "pmcn-status",
-          text: this.smartSyncWarning,
-        });
-      this.button(row, "检查更新", async () => {
-        await this.refreshSmartSyncReleases();
-        if (this.smartSyncWarning) throw Error(this.smartSyncWarning);
-      });
       const recent = recentReleases(this.smartSyncReleases);
-      if (!recent.length) {
-        smartSyncContainer.createDiv({
-          cls: "pmcn-plugin-meta",
-          text: "暂无可用版本，请检查更新",
-        });
-        return;
-      }
       this.selectSmartSyncDefault();
-      this.releasePicker(
-        row,
-        "Smart Sync ",
-        recent.map((release) => ({ ...release, value: smartSyncReleaseKey(release) })),
-        this.smartSyncSelected,
-        (value) => {
+      this.renderFirstPartyCard(smartSyncContainer, SMART_SYNC_ID, {
+        warning: this.smartSyncWarning,
+        check: async () => {
+          await this.refreshSmartSyncReleases();
+          if (this.smartSyncWarning) throw Error(this.smartSyncWarning);
+        },
+        emptyMessage: "暂无可用版本，请检查更新",
+        releases: recent.map((release) => ({ ...release, value: smartSyncReleaseKey(release) })),
+        selected: this.smartSyncSelected,
+        onSelect: (value) => {
           this.smartSyncSelected = value;
           this.smartSyncManualSelection = true;
         },
-        async () => {
+        install: async () => {
           const release = this.smartSyncReleases.find(
             (entry) => smartSyncReleaseKey(entry) === this.smartSyncSelected,
           );
           if (!release) throw Error("请选择可用版本");
           await this.installSmartSync(release);
         },
-      );
+      });
     };
     this.refreshSmartSyncView = renderSmartSync;
     renderSmartSync();
