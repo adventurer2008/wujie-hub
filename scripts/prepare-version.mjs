@@ -5,11 +5,13 @@ const version = process.argv[2];
 assert.match(version || "", /^\d+\.\d+\.\d+$/);
 const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
 const previous = manifest.version;
+assert.match(previous, /^\d+\.\d+\.\d+(?:-alpha\.[1-9]\d*)?$/);
 const parts = (v) => v.split(".").map(Number);
 const a = parts(version),
-  b = parts(previous);
+  b = parts(previous.split("-")[0]);
 assert.ok(
-  a.some((n, i) => n > b[i] && a.slice(0, i).every((v, j) => v === b[j])),
+  a.some((n, i) => n > b[i] && a.slice(0, i).every((v, j) => v === b[j])) ||
+    previous.startsWith(version + "-alpha."),
   "Version must increase",
 );
 execFileSync(

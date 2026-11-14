@@ -1,12 +1,12 @@
-# Wujie Hub — 0.1.31
+# Wujie Hub — 0.1.32
 
 插件安装中心
 
-在国内网络环境下，便捷搜索、安装和升级Obsidian官方社区插件，以及管理无界同步版本。
+在国内网络环境下，搜索、安装和更新 Obsidian 社区插件，并管理无界同步、无界译和 Smart Sync 的版本。
 
 ## Overview
 
-Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its single settings page also provides a dedicated Wujie Sync section for selecting stable and Alpha releases, checking SHA-256 digests, and restoring a local code version that the user has explicitly confirmed as working. The interface is in Chinese.
+Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its Chinese settings page has dedicated cards for Wujie Sync, Wujie Translate, and Smart Sync. Each card uses the same controls to select stable or Alpha releases and verifies their SHA-256 digests before installation.
 
 The page heading displays the currently loaded Wujie Hub version. If the native request transport fails for the official download site, a credential-free browser request retries the same HTTPS URL; it does not switch to the legacy host or GitHub. Refresh errors appear in the Wujie Sync section, and cache-write failures are reported separately from download failures. Mobile network acceptance remains pending.
 
@@ -17,7 +17,7 @@ The page heading displays the currently loaded Wujie Hub version. If the native 
 3. In Obsidian, open **Settings → Community plugins**, enable **Wujie Hub**, and open its settings page. You can also run the **打开插件管理** command (Open plugin manager).
 4. Enter a plugin name, description, or ID in the search field. Select **安装** (Install), review the version and trust prompt, and confirm the download. New plugins remain disabled until you enable them in Obsidian's Community plugins settings.
 5. Select **检查更新** (Check for updates) beside **已安装插件** (Installed plugins). Update an individual result with **加速更新** (Update through mirrors), or use **全部加速更新** (Update all through mirrors). Updates preserve each plugin's enabled state and configuration. The manager itself, Wujie Sync, and Smart Sync are excluded from ordinary updates.
-6. In the Wujie Sync section, select **检查更新**, choose a version, then **安装所选版本** (Install selected version). To save a rollback target, use the more menu and **标记当前版本正常** (Mark current version as working) only after testing that version yourself. The rollback button restores code, preserving current configuration; it cannot undo configuration or remote data migrations.
+6. In a first-party plugin card, select **检查更新**, choose a version, then select **安装所选版本** (Install selected version). The dropdown groups stable and Alpha releases. Where a stable version is available, it is selected by default. Newly installed plugins can be enabled in Obsidian's Community plugins settings.
 
 The manager changes only `manifest.json`, `main.js`, and `styles.css` in target plugins, with local release-file backups under `<config-dir>/pmcn-backups/`. Use Obsidian's own settings to enable, disable, or uninstall plugins. See the Chinese instructions below for recovery details and the source-build workflow.
 
@@ -25,7 +25,7 @@ The manager changes only `manifest.json`, `main.js`, and `styles.css` in target 
 
 - `raw.githubusercontent.com` supplies the official community plugin directory and plugin manifests; `api.github.com` supplies release metadata and available file digests; `github.com` supplies release downloads and may redirect them to GitHub's file distribution services.
 - Third-party proxies `ghfast.top`, `gh-proxy.com`, `gh.llkk.cc`, `ghproxy.net`, `gh.monlor.com`, and `wget.la` relay GitHub requests to improve access from China. Metadata checks try some sources in parallel; file downloads switch sources after failures. Proxies can see the GitHub URLs they relay. Ordinary community downloads do not have independently trusted publisher hashes; install only plugins and sources you trust. A matching Wujie digest establishes consistency with its metadata, not an author signature.
-- `user.wujiesync.cc` supplies Wujie Sync Alpha and stable release feeds and installation files. Official Wujie downloads do not fall back to the old download host or GitHub. Opening this plugin's settings page automatically refreshes that feed; manual update checks also request it. Release files are downloaded after confirmation.
+- `user.wujiesync.cc` supplies Wujie Sync and Wujie Translate Alpha and stable release feeds and installation files. Opening the settings page refreshes both products. Selecting an installation downloads the release files from the official download site.
 - An optional custom HTTPS `feedUrl` supplies Wujie release metadata when configured. Confirmed installs request the HTTPS file URLs specified by that feed.
 - `smartsync.cc` supplies Smart Sync's stable/Alpha index and installation files. Opening settings or checking updates refreshes the index; installation requires confirmation and verifies the three SHA-256 digests from that index.
 
@@ -33,7 +33,7 @@ Search terms are matched locally and are not uploaded as search parameters. Requ
 
 ## Compatibility and license
 
-Requires Obsidian **1.12.0 or later** and allows installation on Windows, macOS, Linux, Android, and iOS/iPadOS. Desktop-only target plugins are rejected on mobile before any file mutation. This version is released at the maintainer's request before real-device acceptance; mobile and minimum-version runtime acceptance remain pending. See [the acceptance checklist](docs/MOBILE-ACCEPTANCE.md). Automated checks on Windows, macOS and Linux do not establish Obsidian real-device acceptance. Internal plugin-management APIs may change; unsupported interfaces stop the operation. Backups do not provide a transaction that survives every crash or forced shutdown.
+Requires Obsidian **1.12.0 or later** and allows installation on Windows, macOS, Linux, Android, and iOS/iPadOS. Desktop-only target plugins are rejected on mobile before any file mutation. The maintainer accepted the three-card layout in Obsidian 1.15.1 on Windows. Native installation, macOS, Linux desktop, Android, iPhone, iPad, and minimum-version runtime acceptance remain pending. See [the validation record](docs/validation/first-party-release-picker-2026-11-14.md). Internal plugin-management APIs may change; unsupported interfaces stop the operation. A crash or forced shutdown may require manually restoring backed-up release files.
 
 Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
@@ -51,23 +51,17 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 默认卸载只移除发行文件，保留用户配置。安装、更新、卸载的发行文件备份保存在 `<配置目录>/pmcn-backups/`；备份是本机数据，不应上传或复制到其他设备。失败恢复也失败时，请停止继续安装，按提示找到快照恢复发行文件并重启。
 
-## Smart Sync Alpha
+## 自研插件 / First-party plugins
+
+无界同步、无界译和 Smart Sync 各有一张卡片。打开设置页会自动检查三个插件，上方也可手动点「检查更新」。在下拉框中选择稳定版或测试版，再点「安装所选版本」。无界译安装前会重新核对所选渠道的清单与安装文件，首次安装后可在 Obsidian 的「第三方插件」中启用。
 
 The dedicated **Smart Sync** section reads stable and Alpha releases from [the Global download index](https://smartsync.cc/download/releases.json) on opening or **检查更新** (Check for updates). It shows the five highest stable releases and three recent Alpha releases, defaults to the highest stable, and preserves an explicit selection while that release is available. With no stable release, the user must choose a test release. Reading the index never installs or updates a plugin. Future package versions do not require a matching Hub release: publishers add validated immutable packages and update the same schema-v1 index. Hub itself may still need maintenance for defects, security or Obsidian API changes.
 
-Hub downloads all three files from that release's official `https://smartsync.cc/download/stable/VERSION/` or `alpha/VERSION/` directory and verifies SHA-256 digests from the HTTPS index. Foreign IDs, unexpected hosts/directories, invalid hashes, duplicate channel/version entries and unsupported schemas are rejected. A failed refresh keeps the last valid local list with an error. New downloads also validate exact plugin ID, version and Obsidian compatibility before installation. First installs remain disabled; existing configuration and enabled state are preserved. The independent Global rollback target is marked user-verified only after explicit confirmation. Code rollback cannot undo configuration or remote migrations. Nothing is installed automatically into any vault.
-
-普通“已安装插件”区域仅管理社区插件更新；无界同步和 **Smart Sync** 在下方两张独立卡片中管理，不重复出现在普通搜索/更新结果。两者使用相同名称、版本/作者、英文描述、检查更新和历史版本控件。打开页面自动刷新各自下载清单，稳定版在前且默认最高稳定版，Alpha 在“测试版”中手动选择。海外目前实际清单为 1.1.4 Alpha，并未把它改成稳定版。以后发布新插件包及清单即可被 Hub 发现，无需把新版本号和摘要写进 Hub 重新发版。刷新不会自动安装；安装仍需确认。账号、云端存储和已确认回退目标始终按国内/海外独立保留。
-
-Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机验收均未完成；自动化校验不替代真机验收。该入口为明确选择的 Alpha 测试分发，不代表全平台正式验收通过。
+Hub downloads all three files from that release's official `https://smartsync.cc/download/stable/VERSION/` or `alpha/VERSION/` directory and verifies SHA-256 digests from the HTTPS index. Foreign IDs, unexpected hosts/directories, invalid hashes, duplicate channel/version entries and unsupported schemas are rejected. A failed refresh keeps the last valid local list with an error. New downloads also validate exact plugin ID, version and Obsidian compatibility before installation. First installs remain disabled; existing configuration and enabled state are preserved.
 
 ## 无界同步
 
-专属区支持版本清单、指定版本安装、SHA-256、手动确认正常版本和本机 Rollback。正常版本只有点击“标记当前版本正常”才保存。回退只恢复代码，不恢复配置或远端数据迁移。
-
 无界同步的 Alpha 和稳定版清单、安装文件统一从 [user.wujiesync.cc/download/](https://user.wujiesync.cc/download/) 读取。点击“检查更新”后，Alpha 最多显示最新3个，稳定版最多显示最新5个，共用“安装所选版本”按钮。打开页面默认选择版本号最高的稳定版，无稳定版时提示选择版本；下拉分组先显示稳定版，测试版放在最下面；点击检查更新后，在当前页面即时刷新历史版本，仍可用的已选版本保持不变。Alpha 使用 alpha/releases.json，稳定版使用 releases.json；清单或本机缓存中的旧官方域名及 GitHub 稳定版地址会转换为新站地址，不回退旧域名或 GitHub 下载。文件仍需通过清单 SHA-256 校验；本机已确认的回退目标独立保留。可由开发者配置自有 HTTPS 清单（feedUrl）。
-
-在无界同步更多菜单中选择“标记当前版本正常”，确认后保存本机代码快照和摘要。随后出现“回退至版本号”，点击即可离线恢复代码，当前配置保留。安装其他版本不会覆盖回退目标。首次安装 Alpha 前若无目标，会要求你明确确认当前版本已验证正常。
 
 发行文件依据清单 SHA-256 核对；摘要一致表示文件与清单一致，不等同于作者签名或独立的来源认证。回退不会撤销配置或云端数据迁移，不能保证任意旧版本兼容新版数据。
 
@@ -110,7 +104,7 @@ Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机
 - `api.github.com`：查询社区插件的最新正式 Release，以及无界同步国内发行仓库的历史 Release 和文件摘要。
 - `github.com`：下载用户选择的插件发行文件；GitHub 可能将下载重定向至其文件分发服务。
 - 第三方 GitHub 加速代理 `ghfast.top`、`gh-proxy.com`、`gh.llkk.cc`、`ghproxy.net`、`gh.monlor.com`、`wget.la`：转发上述 GitHub 请求，以改善国内访问。版本查询会并行尝试部分来源，文件下载按来源失败切换。代理可看到所转发的 GitHub 地址；文件摘要一致不等同于作者签名。
-- `user.wujiesync.cc`：提供无界同步 Alpha、稳定版清单及安装文件。每次打开设置页和手动检查更新均刷新两种渠道；确认后从新站下载发行文件，不回退旧官方域名或 GitHub。
+- `user.wujiesync.cc`：提供无界同步、无界译的 Alpha 和稳定版清单及安装文件。打开设置页或手动检查更新时刷新，选择安装时下载对应渠道的发行文件。
 - `smartsync.cc`：提供 Smart Sync 稳定版/Alpha 统一清单和安装文件；打开设置页或检查更新刷新清单，确认安装时校验清单中的三个 SHA-256 摘要。
 - 可选的自定义 HTTPS `feedUrl`：配置后用于获取无界同步版本清单；确认安装后会请求清单指定的 HTTPS 文件地址。这些地址由清单提供方决定。
 
@@ -122,7 +116,7 @@ Windows、macOS、Linux、Android、iPhone 和 iPad 的本版本 Obsidian 真机
 
 `tests/smoke.ts` 是只用于独立测试库的真实 Obsidian 测试入口，不能安装到日常库；它会创建测试插件、故意触发加载失败、测试恢复、下载并以禁用状态安装真实社区插件。`test-output/vault/smoke-result.json` 保存本机执行结果。
 
-当前界面：进入页面不列社区插件；输入关键词后最多五条结果。已安装插件只保留同行检查更新及检查后有更新的列表。无界同步使用同样的名称、版本、作者和描述行；更多菜单可标记正常版本，已保存目标后主行显示一键回退按钮。
+进入页面时，社区搜索结果留空。输入关键词后最多显示五条结果。已安装插件区域显示检查更新及检查后有更新的列表。
 
 0.1.21：无界同步 Alpha 与最近5个稳定版均使用新下载站，包含旧缓存地址兼容转换；新站失败时明确提示，不通过旧站或 GitHub 下载。历史版本下拉按渠道分组，共用“安装所选版本”按钮；不再提供独立“安装最新 Alpha”按钮或累积本机旧 Alpha 记录。
 

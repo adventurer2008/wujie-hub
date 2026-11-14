@@ -1,12 +1,22 @@
 {
-  "pluginVersion": "0.1.31",
+  "pluginVersion": "0.1.32",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.31",
-    "date": "2026-11-05",
+    "pluginVersion": "0.1.32",
+    "date": "2026-11-14",
     "maintainerApproved": true,
-    "instruction": "那发布出去吧",
-    "scope": "Publish the disclosed Global public-download transport fallback. New fallback native-device acceptance remains deferred; current static download CORS limitation and VPN-off recovery are disclosed. No server/Caddy/domain/R2 change or VPN bypass is claimed."
+    "instruction": "我check过了，三个卡片显示都对，就把这个新版Hub发正稳定版生产吧",
+    "scope": "Promote 0.1.32-alpha.4 to Stable after the maintainer accepted the three cards in the Windows test vault. Other native platforms, minimum-version runtime and native installation acceptance remain pending."
   },
-  "devices": []
+  "devices": [
+    {
+      "platform": "Windows",
+      "realDevice": true,
+      "obsidianVersion": "1.15.1",
+      "pluginVersion": "0.1.32-alpha.4",
+      "scope": "First-party card layout only",
+      "passed": true,
+      "evidence": "first-party-release-picker-2026-11-14.md"
+    }
+  ]
 }
