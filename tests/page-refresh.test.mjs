@@ -206,7 +206,11 @@ test("1.12 opens all three first-party update checks once and places installatio
   const page = new Page({
     app,
     manifest: { id: "wujie-hub", name: "Wujie Hub", version: "0.1.22" },
-    state: { catalog: [], smartSyncReleases: [globalRelease] },
+    state: {
+      catalog: [],
+      smartSyncReleases: [globalRelease],
+      wujieReleases: [{ ...globalRelease, id: "wujie-sync", channel: "Stable" }],
+    },
     net: {
       json() {
         alphaRequests++;
@@ -214,6 +218,10 @@ test("1.12 opens all three first-party update checks once and places installatio
       },
     },
   });
+  page.translateReleases = {
+    Stable: { version: "0.1.0" },
+    Alpha: { version: "0.1.1-alpha.1" },
+  };
   const root = new TestElement();
   page.renderPage(root);
   const texts = [];
@@ -245,14 +253,24 @@ test("1.12 opens all three first-party update checks once and places installatio
   const elements = [];
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
-  const smart = elements.filter(el => el.classes.has("pmcn-sync-section")).at(-1);
-  assert.equal(smart.children.length, 1);
-  const actions = smart.children[0].children.at(-1);
-  assert.equal(actions.children[0].text, "检查更新");
-  const picker = actions.children[1];
-  assert.ok(picker.classes.has("pmcn-release-picker"));
-  assert.ok(picker.children.at(-1).children.some(el => el.attributes.get("aria-label") === "Smart Sync 版本"));
-  assert.ok(picker.children.at(-1).children.some(el => el.text === "安装所选版本"));
+  const cards = elements.filter(el => el.classes.has("pmcn-sync-section"));
+  for (const [index, label] of ["无界同步版本", "无界译版本", "Smart Sync 版本"].entries()) {
+    const actions = cards[index].children[0].children.at(-1);
+    assert.equal(actions.children[0].text, "检查更新");
+    const picker = actions.children[1];
+    assert.ok(picker.classes.has("pmcn-release-picker"));
+    const controls = picker.children.at(-1).children;
+    assert.ok(controls.some(el => el.attributes.get("aria-label") === label));
+    assert.equal(controls.filter(el => el.text === "安装所选版本").length, 1);
+  }
+  assert.equal(page.translateSelected, "Stable:0.1.0");
+  assert.ok(texts.includes("0.1.1-alpha.1"));
+  page.translateSelected = "Alpha:0.1.1-alpha.1";
+  page.refreshTranslateView();
+  assert.equal(page.translateSelected, "Alpha:0.1.1-alpha.1");
+  page.translateReleases.Alpha.version = "0.1.1-alpha.2";
+  page.refreshTranslateView();
+  assert.equal(page.translateSelected, "Stable:0.1.0");
   page.renderPage(root);
   assert.equal(alphaRequests, 5);
 });

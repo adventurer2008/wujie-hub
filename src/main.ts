@@ -123,6 +123,7 @@ class Page extends CompatibleSettingsTab {
   smartSyncGeneration = 0;
   translateWarning = "";
   translateGeneration = 0;
+  translateSelected = "";
   translateReleases: Partial<Record<"Stable" | "Alpha", Awaited<ReturnType<typeof loadTranslateRelease>>>> = {};
   refreshTranslateView?: () => void;
 
@@ -194,6 +195,39 @@ class Page extends CompatibleSettingsTab {
         .onClick(() => void this.task(fn)),
     );
   }
+  releasePicker(
+    row: Setting,
+    name: string,
+    releases: ReadonlyArray<Pick<WujieRelease, "channel" | "version"> & { value: string }>,
+    selected: string,
+    onSelect: (value: string) => void,
+    install: () => Promise<void>,
+  ) {
+    const choices = new Setting(row.controlEl).setClass("pmcn-release-picker");
+    choices.addDropdown((dropdown) => {
+      if (!selected)
+        dropdown.selectEl.createEl("option", {
+          text: "请选择版本",
+          attr: { value: "" },
+        });
+      for (const [channel, label] of [
+        ["Stable", "稳定版"],
+        ["Alpha", "测试版"],
+      ] as const) {
+        const versions = releases.filter((release) => release.channel === channel);
+        if (!versions.length) continue;
+        const group = dropdown.selectEl.createEl("optgroup", { attr: { label } });
+        for (const release of versions)
+          group.createEl("option", {
+            text: release.version,
+            attr: { value: release.value },
+          });
+      }
+      dropdown.selectEl.setAttribute("aria-label", name + "版本");
+      dropdown.setValue(selected).setDisabled(this.working).onChange(onSelect);
+    });
+    this.button(choices, "安装所选版本", install);
+  }
   renderLegacy(): void {
     this.renderPage(this.containerEl);
   }
@@ -231,6 +265,7 @@ class Page extends CompatibleSettingsTab {
       this.manualSelection = false;
       this.selectDefaultRelease();
       this.smartSyncManualSelection = false;
+      this.translateSelected = "";
       this.selectSmartSyncDefault();
     }
     el.empty();
@@ -540,43 +575,24 @@ class Page extends CompatibleSettingsTab {
       this.button(wujieRow, "检查更新", async () => {
         await this.refreshWujieAll();
       });
-      if (recentReleases(this.releases).length) {
-        const recent = recentReleases(this.releases);
+      const recent = recentReleases(this.releases);
+      if (recent.length) {
         this.selectDefaultRelease();
-        const choices = new Setting(wujieRow.controlEl)
-          .setClass("pmcn-release-picker");
-        choices.addDropdown((d) => {
-          if (!this.selected)
-            d.selectEl.createEl("option", {
-              text: "请选择版本",
-              attr: { value: "" },
-            });
-          for (const [channel, label] of [
-            ["Stable", "稳定版"],
-            ["Alpha", "测试版"],
-          ] as const) {
-            const versions = recent.filter((r) => r.channel === channel);
-            if (!versions.length) continue;
-            const group = d.selectEl.createEl("optgroup", { attr: { label } });
-            for (const r of versions)
-              group.createEl("option", {
-                text: r.version,
-                attr: { value: r.version },
-              });
-          }
-          d.selectEl.setAttribute("aria-label", "无界同步版本");
-          d.setValue(this.selected)
-            .setDisabled(this.working)
-            .onChange((v) => {
-              this.selected = v;
-              this.manualSelection = true;
-            });
-        });
-        this.button(choices, "安装所选版本", async () => {
-          const r = this.releases.find((r) => r.version === this.selected);
-          if (!r) throw Error("请选择可用版本");
-          await this.installWujie(r);
-        });
+        this.releasePicker(
+          wujieRow,
+          "无界同步",
+          recent.map((release) => ({ ...release, value: release.version })),
+          this.selected,
+          (value) => {
+            this.selected = value;
+            this.manualSelection = true;
+          },
+          async () => {
+            const release = this.releases.find((entry) => entry.version === this.selected);
+            if (!release) throw Error("请选择可用版本");
+            await this.installWujie(release);
+          },
+        );
       }
     };
     this.refreshWujieView = renderWujie;
@@ -586,23 +602,35 @@ class Page extends CompatibleSettingsTab {
       translateContainer.empty();
       const installed = manager(this.app).manifests[TRANSLATE_ID];
       const row = new Setting(translateContainer)
+        .setClass("pmcn-installed-row")
         .setClass("pmcn-wujie-row")
         .setName("无界译")
         .setDesc("国内 · " + (installed ? "已安装 " + installed.version : "未安装"));
       if (this.translateWarning) row.descEl.createDiv({ text: this.translateWarning });
-      this.button(row, "检查更新", () => this.refreshTranslateAlpha());
-      const choices = new Setting(row.controlEl).setClass("pmcn-release-picker");
-      for (const channel of ["Stable", "Alpha"] as const) {
+      this.button(row, "检查更新", () => this.refreshTranslateReleases());
+      const releases = (["Stable", "Alpha"] as const).flatMap((channel) => {
         const release = this.translateReleases[channel];
-        if (!release) continue;
-        const label = channel === "Stable" ? "正式版" : "Alpha";
-        this.button(choices, "安装" + label + " " + release.version, async () => {
-          const latest = await loadTranslateRelease(this.pm.net, channel);
-          this.translateReleases[channel] = latest;
-          if (latest.version !== release.version) throw Error("版本已更新，请确认新版本后安装");
-          await this.pm.installer.install(TRANSLATE_ID, await downloadTranslateRelease(this.pm.net, latest), latest.version);
-        });
-      }
+        return release ? [{ channel, version: release.version, value: channel + ":" + release.version }] : [];
+      });
+      if (!releases.length) return;
+      if (!releases.some((release) => release.value === this.translateSelected))
+        this.translateSelected = releases.find((release) => release.channel === "Stable")?.value ?? "";
+      this.releasePicker(
+        row,
+        "无界译",
+        releases,
+        this.translateSelected,
+        (value) => { this.translateSelected = value; },
+        async () => {
+          const selected = releases.find((release) => release.value === this.translateSelected);
+          if (!selected) throw Error("请选择可用版本");
+          const latest = await loadTranslateRelease(this.pm.net, selected.channel);
+          this.translateReleases[selected.channel] = latest;
+          if (latest.version !== selected.version) throw Error("版本已更新，请确认新版本后安装");
+          const bundle = await downloadTranslateRelease(this.pm.net, latest);
+          await this.pm.installer.install(TRANSLATE_ID, bundle, latest.version);
+        },
+      );
     };
     this.refreshTranslateView();
     const smartSyncContainer = el.createDiv({ cls: "pmcn-sync-section" });
@@ -639,47 +667,23 @@ class Page extends CompatibleSettingsTab {
         return;
       }
       this.selectSmartSyncDefault();
-      const choices = new Setting(row.controlEl)
-        .setClass("pmcn-release-picker");
-      choices.addDropdown((dropdown) => {
-        if (!this.smartSyncSelected)
-          dropdown.selectEl.createEl("option", {
-            text: "请选择版本",
-            attr: { value: "" },
-          });
-        for (const [channel, label] of [
-          ["Stable", "稳定版"],
-          ["Alpha", "测试版"],
-        ] as const) {
-          const versions = recent.filter(
-            (release) => release.channel === channel,
+      this.releasePicker(
+        row,
+        "Smart Sync ",
+        recent.map((release) => ({ ...release, value: smartSyncReleaseKey(release) })),
+        this.smartSyncSelected,
+        (value) => {
+          this.smartSyncSelected = value;
+          this.smartSyncManualSelection = true;
+        },
+        async () => {
+          const release = this.smartSyncReleases.find(
+            (entry) => smartSyncReleaseKey(entry) === this.smartSyncSelected,
           );
-          if (!versions.length) continue;
-          const group = dropdown.selectEl.createEl("optgroup", {
-            attr: { label },
-          });
-          for (const release of versions)
-            group.createEl("option", {
-              text: release.version,
-              attr: { value: smartSyncReleaseKey(release) },
-            });
-        }
-        dropdown.selectEl.setAttribute("aria-label", "Smart Sync 版本");
-        dropdown
-          .setValue(this.smartSyncSelected)
-          .setDisabled(this.working)
-          .onChange((value) => {
-            this.smartSyncSelected = value;
-            this.smartSyncManualSelection = true;
-          });
-      });
-      this.button(choices, "安装所选版本", async () => {
-        const release = this.smartSyncReleases.find(
-          (entry) => smartSyncReleaseKey(entry) === this.smartSyncSelected,
-        );
-        if (!release) throw Error("请选择可用版本");
-        await this.installSmartSync(release);
-      });
+          if (!release) throw Error("请选择可用版本");
+          await this.installSmartSync(release);
+        },
+      );
     };
     this.refreshSmartSyncView = renderSmartSync;
     renderSmartSync();
@@ -691,11 +695,11 @@ class Page extends CompatibleSettingsTab {
         this.refreshWujieView?.();
       });
       void this.refreshSmartSyncReleases();
-      void this.refreshTranslateAlpha();
+      void this.refreshTranslateReleases();
     }
   }
 
-  async refreshTranslateAlpha() {
+  async refreshTranslateReleases() {
     const generation = ++this.translateGeneration;
     const channels = ["Stable", "Alpha"] as const;
     const results = await Promise.allSettled(channels.map(channel => loadTranslateRelease(this.pm.net, channel)));
