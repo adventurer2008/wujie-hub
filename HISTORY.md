@@ -1,3 +1,7 @@
+# 0.1.32-alpha.3
+
+CHG-20261114-TRANSLATE-STABLE。无界译卡片支持正式版和 Alpha，各自核对清单和安装文件。
+
 # 0.1.32-alpha.2
 
 CHG-20261114-HUB-COMPACT-RELEASE-CONTROLS。版本下拉和安装按钮紧贴「检查更新」下方，移除卡片内的横线。

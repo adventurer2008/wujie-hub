@@ -241,7 +241,7 @@ test("1.12 opens all three first-party update checks once and places installatio
     ).length,
     2,
   );
-  assert.equal(alphaRequests, 4);
+  assert.equal(alphaRequests, 5);
   const elements = [];
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
@@ -254,7 +254,7 @@ test("1.12 opens all three first-party update checks once and places installatio
   assert.ok(picker.children.at(-1).children.some(el => el.attributes.get("aria-label") === "Smart Sync 版本"));
   assert.ok(picker.children.at(-1).children.some(el => el.text === "安装所选版本"));
   page.renderPage(root);
-  assert.equal(alphaRequests, 4);
+  assert.equal(alphaRequests, 5);
 });
 
 test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {

@@ -5,20 +5,22 @@ import { verifyBundle } from "./wujie";
 
 export const TRANSLATE_ID = "wujie-translate";
 const origin = "https://user.wujiesync.cc";
-const alpha = origin + "/download/translate/alpha/";
+const download = origin + "/download/translate/";
 
-export async function loadTranslateAlpha(net: Network) {
-  const feed = record(await net.json<unknown>(alpha + "releases.json"));
+export async function loadTranslateRelease(net: Network, channel: "Stable" | "Alpha") {
+  const directory = download + channel.toLowerCase() + "/";
+  const versionPattern = channel === "Stable" ? /^\d+\.\d+\.\d+$/ : /^\d+\.\d+\.\d+-alpha\.[1-9]\d*$/;
+  const feed = record(await net.json<unknown>(directory + "releases.json"));
   if (feed.schemaVersion !== 1 || feed.pluginId !== TRANSLATE_ID ||
-      feed.channel !== "Alpha" || typeof feed.latest !== "string" ||
-      !/^\d+\.\d+\.\d+-alpha\.[1-9]\d*$/.test(feed.latest) ||
+      feed.channel !== channel || typeof feed.latest !== "string" ||
+      !versionPattern.test(feed.latest) ||
       !Array.isArray(feed.releases))
     throw Error("无界译 Alpha 版本清单格式错误");
   const matches = feed.releases.map(record).filter(row => row.version === feed.latest);
   const release = matches[0];
-  const base = alpha + feed.latest + "/";
+  const base = directory + feed.latest + "/";
   if (matches.length !== 1 || release.id !== TRANSLATE_ID ||
-      release.channel !== "Alpha" || release.baseUrl !== base)
+      release.channel !== channel || release.baseUrl !== base)
     throw Error("无界译 Alpha 版本来源错误");
   const sha256: Record<string, string> = {};
   for (const file of FILES) {
@@ -30,7 +32,9 @@ export async function loadTranslateAlpha(net: Network) {
   return { version: feed.latest, base, sha256 };
 }
 
-export async function downloadTranslateAlpha(net: Network, release: Awaited<ReturnType<typeof loadTranslateAlpha>>) {
+export const loadTranslateAlpha = (net: Network) => loadTranslateRelease(net, "Alpha");
+
+export async function downloadTranslateRelease(net: Network, release: Awaited<ReturnType<typeof loadTranslateRelease>>) {
   const bundle: Bundle = {};
   for (const file of FILES) bundle[file] = await net.get(release.base + file);
   await verifyBundle(bundle, release.sha256);
@@ -39,3 +43,4 @@ export async function downloadTranslateAlpha(net: Network, release: Awaited<Retu
     throw Error("无界译 Alpha 安装包与版本清单不匹配");
   return bundle;
 }
+export const downloadTranslateAlpha = downloadTranslateRelease;

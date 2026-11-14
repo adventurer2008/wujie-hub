@@ -2,7 +2,7 @@ import { Plugin, Setting, Notice, Modal, PluginManifest, Menu } from "obsidian";
 import { Network, Entry } from "./network";
 import { record } from "./json";
 import { Installer } from "./installer";
-import { TRANSLATE_ID, downloadTranslateAlpha, loadTranslateAlpha } from "./wujie-translate";
+import { TRANSLATE_ID, downloadTranslateRelease, loadTranslateRelease } from "./wujie-translate";
 import {
   SMART_SYNC_ID,
   downloadSmartSync,
@@ -123,7 +123,7 @@ class Page extends CompatibleSettingsTab {
   smartSyncGeneration = 0;
   translateWarning = "";
   translateGeneration = 0;
-  translateRelease?: Awaited<ReturnType<typeof loadTranslateAlpha>>;
+  translateReleases: Partial<Record<"Stable" | "Alpha", Awaited<ReturnType<typeof loadTranslateRelease>>>> = {};
   refreshTranslateView?: () => void;
 
   constructor(private pm: PM) {
@@ -585,19 +585,24 @@ class Page extends CompatibleSettingsTab {
     this.refreshTranslateView = () => {
       translateContainer.empty();
       const installed = manager(this.app).manifests[TRANSLATE_ID];
-      const release = this.translateRelease;
       const row = new Setting(translateContainer)
         .setClass("pmcn-wujie-row")
         .setName("无界译")
-        .setDesc("国内 Alpha · " + (installed ? "已安装 " + installed.version : "未安装"));
+        .setDesc("国内 · " + (installed ? "已安装 " + installed.version : "未安装"));
       if (this.translateWarning) row.descEl.createDiv({ text: this.translateWarning });
       this.button(row, "检查更新", () => this.refreshTranslateAlpha());
-      if (release) this.button(new Setting(row.controlEl).setClass("pmcn-release-picker"), "安装 " + release.version, async () => {
-        const latest = await loadTranslateAlpha(this.pm.net);
-        this.translateRelease = latest;
-        if (latest.version !== release.version) throw Error("Alpha 已更新，请确认新版本后安装");
-        await this.pm.installer.install(TRANSLATE_ID, await downloadTranslateAlpha(this.pm.net, latest), latest.version);
-      });
+      const choices = new Setting(row.controlEl).setClass("pmcn-release-picker");
+      for (const channel of ["Stable", "Alpha"] as const) {
+        const release = this.translateReleases[channel];
+        if (!release) continue;
+        const label = channel === "Stable" ? "正式版" : "Alpha";
+        this.button(choices, "安装" + label + " " + release.version, async () => {
+          const latest = await loadTranslateRelease(this.pm.net, channel);
+          this.translateReleases[channel] = latest;
+          if (latest.version !== release.version) throw Error("版本已更新，请确认新版本后安装");
+          await this.pm.installer.install(TRANSLATE_ID, await downloadTranslateRelease(this.pm.net, latest), latest.version);
+        });
+      }
     };
     this.refreshTranslateView();
     const smartSyncContainer = el.createDiv({ cls: "pmcn-sync-section" });
@@ -692,15 +697,16 @@ class Page extends CompatibleSettingsTab {
 
   async refreshTranslateAlpha() {
     const generation = ++this.translateGeneration;
-    try {
-      const release = await loadTranslateAlpha(this.pm.net);
-      if (!this.pageVisible || generation !== this.translateGeneration) return;
-      this.translateRelease = release;
-      this.translateWarning = "";
-    } catch (error) {
-      if (!this.pageVisible || generation !== this.translateGeneration) return;
-      this.translateWarning = "无界译检查更新失败：" + String(error);
-    }
+    const channels = ["Stable", "Alpha"] as const;
+    const results = await Promise.allSettled(channels.map(channel => loadTranslateRelease(this.pm.net, channel)));
+    if (!this.pageVisible || generation !== this.translateGeneration) return;
+    const unavailable: string[] = [];
+    results.forEach((result, index) => {
+      const channel = channels[index];
+      if (result.status === "fulfilled") this.translateReleases[channel] = result.value;
+      else unavailable.push(channel === "Stable" ? "正式版" : "Alpha");
+    });
+    this.translateWarning = unavailable.length ? unavailable.join("、") + "检查更新失败" : "";
     this.refreshTranslateView?.();
   }
 
