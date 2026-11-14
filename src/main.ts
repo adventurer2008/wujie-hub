@@ -2,6 +2,7 @@ import { Plugin, Setting, Notice, Modal, PluginManifest, Menu } from "obsidian";
 import { Network, Entry } from "./network";
 import { record, manifestVersion } from "./json";
 import { Installer } from "./installer";
+import { TRANSLATE_ID, downloadTranslateAlpha, loadTranslateAlpha } from "./wujie-translate";
 import {
   SMART_SYNC_ID,
   downloadSmartSync,
@@ -130,6 +131,8 @@ class Page extends CompatibleSettingsTab {
   smartSyncManualSelection = false;
   smartSyncWarning = "";
   smartSyncGeneration = 0;
+  translateRelease?: Awaited<ReturnType<typeof loadTranslateAlpha>>;
+  refreshTranslateView?: () => void;
 
   constructor(private pm: PM) {
     super(pm.app, pm);
@@ -164,6 +167,7 @@ class Page extends CompatibleSettingsTab {
     this.smartSyncGeneration++;
     this.refreshWujieView = undefined;
     this.refreshSmartSyncView = undefined;
+    this.refreshTranslateView = undefined;
     this.query = "";
     this.resultMetaEls.clear();
   }
@@ -186,6 +190,7 @@ class Page extends CompatibleSettingsTab {
       // Declarative settings updates do not always rerun a custom renderer.
       if (this.pageVisible) this.refreshWujieView?.();
       if (this.pageVisible) this.refreshSmartSyncView?.();
+      if (this.pageVisible) this.refreshTranslateView?.();
     }
   }
   button(s: Setting, label: string, fn: () => Promise<void>) {
@@ -634,6 +639,26 @@ class Page extends CompatibleSettingsTab {
     };
     this.refreshWujieView = renderWujie;
     renderWujie();
+    const translateContainer = el.createDiv({ cls: "pmcn-sync-section" });
+    this.refreshTranslateView = () => {
+      translateContainer.empty();
+      const installed = manager(this.app).manifests[TRANSLATE_ID];
+      const release = this.translateRelease;
+      const row = new Setting(translateContainer)
+        .setName("无界译")
+        .setDesc("国内 Alpha · " + (installed ? "已安装 " + installed.version : "未安装"));
+      this.button(row, "检查 Alpha", async () => {
+        this.translateRelease = undefined;
+        this.translateRelease = await loadTranslateAlpha(this.pm.net);
+      });
+      if (release) this.button(row, "安装 " + release.version, async () => {
+        const latest = await loadTranslateAlpha(this.pm.net);
+        this.translateRelease = latest;
+        if (latest.version !== release.version) throw Error("Alpha 已更新，请确认新版本后安装");
+        await this.pm.installer.install(TRANSLATE_ID, await downloadTranslateAlpha(this.pm.net, latest), latest.version);
+      });
+    };
+    this.refreshTranslateView();
     const smartSyncContainer = el.createDiv({ cls: "pmcn-sync-section" });
     const renderSmartSync = () => {
       smartSyncContainer.empty();
