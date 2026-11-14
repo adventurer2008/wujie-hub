@@ -1,6 +1,6 @@
 import { Plugin, Setting, Notice, Modal, PluginManifest, Menu } from "obsidian";
 import { Network, Entry } from "./network";
-import { record, manifestVersion } from "./json";
+import { record } from "./json";
 import { Installer } from "./installer";
 import { TRANSLATE_ID, downloadTranslateAlpha, loadTranslateAlpha } from "./wujie-translate";
 import {
@@ -16,7 +16,7 @@ import {
   CompatibleSettingsTab,
   PortableSettingDefinition,
 } from "./compat";
-import { Bundle, compare, readBundle, isManagerPlugin } from "./core";
+import { compare, isManagerPlugin } from "./core";
 import {
   WujieRelease,
   loadWujieReleases,
@@ -24,24 +24,14 @@ import {
   recentReleases,
   defaultReleaseVersion,
   downloadWujie,
-  hashes,
-  verifyBundle,
 } from "./wujie";
 interface State {
   catalog: Entry[];
   lastMirror: string;
-  verified?: Bundle;
-  verifiedHashes?: Record<string, string>;
-  verifiedAt?: string;
   wujieReleases?: WujieRelease[];
   installedWujieTag?: string;
   feedUrl?: string;
   smartSyncReleases?: WujieRelease[];
-  smartSyncBackup?: {
-    bundle: Bundle;
-    sha256: Record<string, string>;
-    verifiedAt?: string;
-  };
 }
 const SYNC_DESCRIPTION =
   "Sync notes, attachments and selected settings with compression and client-side encryption.";
@@ -131,6 +121,8 @@ class Page extends CompatibleSettingsTab {
   smartSyncManualSelection = false;
   smartSyncWarning = "";
   smartSyncGeneration = 0;
+  translateWarning = "";
+  translateGeneration = 0;
   translateRelease?: Awaited<ReturnType<typeof loadTranslateAlpha>>;
   refreshTranslateView?: () => void;
 
@@ -165,6 +157,7 @@ class Page extends CompatibleSettingsTab {
     this.pageVisible = false;
     this.openGeneration++;
     this.smartSyncGeneration++;
+    this.translateGeneration++;
     this.refreshWujieView = undefined;
     this.refreshSmartSyncView = undefined;
     this.refreshTranslateView = undefined;
@@ -544,65 +537,13 @@ class Page extends CompatibleSettingsTab {
       if (this.alphaSourceWarning)
         el.createDiv({ cls: "pmcn-status", text: this.alphaSourceWarning });
 
-      wujieRow.addExtraButton((b) =>
-        b
-          .setIcon("more-vertical")
-          .setTooltip("回退版本")
-          .setDisabled(this.working)
-          .onClick(() => {
-            new Menu()
-              .addItem((item) =>
-                item
-                  .setTitle("标记当前版本正常")
-                  .setDisabled(!current)
-                  .onClick(
-                    () =>
-                      void this.task(async () => {
-                        if (
-                          await this.pm.confirm(
-                            "确认已在本机验证当前无界同步工作正常？保存代码作为回退目标，保留本机配置。",
-                          )
-                        )
-                          await this.markWujieVerified();
-                      }),
-                  ),
-              )
-              .showAtPosition({
-                x: b.extraSettingsEl.getBoundingClientRect().left,
-                y: b.extraSettingsEl.getBoundingClientRect().bottom,
-              });
-          }),
-      );
       this.button(wujieRow, "检查更新", async () => {
         await this.refreshWujieAll();
       });
-      if (this.pm.state.verified) {
-        let version = "已确认版本";
-        try {
-          version = manifestVersion(this.pm.state.verified["manifest.json"]!);
-        } catch {
-          version = "无效快照";
-        }
-        this.button(wujieRow, "回退至 " + version, async () => {
-          const bundle = this.pm.state.verified!;
-          if (this.pm.state.verifiedHashes)
-            await verifyBundle(bundle, this.pm.state.verifiedHashes);
-          await this.pm.installer.install("wujie-sync", bundle);
-          this.pm.state.installedWujieTag = manifestVersion(
-            bundle["manifest.json"]!,
-          );
-          new Notice("已恢复本机确认正常的代码版本；当前配置保持不变");
-        });
-        wujieRow.descEl.createDiv({
-          cls: "pmcn-plugin-meta",
-          text: "回退目标：" + version + "（本机已确认正常；仅恢复代码）",
-        });
-      }
       if (recentReleases(this.releases).length) {
         const recent = recentReleases(this.releases);
         this.selectDefaultRelease();
         const choices = new Setting(el)
-          .setName("历史版本")
           .setClass("pmcn-release-picker");
         choices.addDropdown((d) => {
           if (!this.selected)
@@ -623,6 +564,7 @@ class Page extends CompatibleSettingsTab {
                 attr: { value: r.version },
               });
           }
+          d.selectEl.setAttribute("aria-label", "无界同步版本");
           d.setValue(this.selected)
             .setDisabled(this.working)
             .onChange((v) => {
@@ -645,13 +587,12 @@ class Page extends CompatibleSettingsTab {
       const installed = manager(this.app).manifests[TRANSLATE_ID];
       const release = this.translateRelease;
       const row = new Setting(translateContainer)
+        .setClass("pmcn-wujie-row")
         .setName("无界译")
         .setDesc("国内 Alpha · " + (installed ? "已安装 " + installed.version : "未安装"));
-      this.button(row, "检查 Alpha", async () => {
-        this.translateRelease = undefined;
-        this.translateRelease = await loadTranslateAlpha(this.pm.net);
-      });
-      if (release) this.button(row, "安装 " + release.version, async () => {
+      if (this.translateWarning) row.descEl.createDiv({ text: this.translateWarning });
+      this.button(row, "检查更新", () => this.refreshTranslateAlpha());
+      if (release) this.button(new Setting(translateContainer).setClass("pmcn-release-picker"), "安装 " + release.version, async () => {
         const latest = await loadTranslateAlpha(this.pm.net);
         this.translateRelease = latest;
         if (latest.version !== release.version) throw Error("Alpha 已更新，请确认新版本后安装");
@@ -680,69 +621,10 @@ class Page extends CompatibleSettingsTab {
           cls: "pmcn-status",
           text: this.smartSyncWarning,
         });
-      row.addExtraButton((button) =>
-        button
-          .setIcon("more-vertical")
-          .setTooltip("回退版本")
-          .setDisabled(this.working)
-          .onClick(() => {
-            new Menu()
-              .addItem((item) =>
-                item
-                  .setTitle("标记当前版本正常")
-                  .setDisabled(!current)
-                  .onClick(
-                    () =>
-                      void this.task(async () => {
-                        if (
-                          await this.pm.confirm(
-                            "确认已在本机验证当前 Smart Sync 工作正常？保存代码作为回退目标，保留本机配置。",
-                          )
-                        )
-                          await this.markSmartSyncVerified();
-                      }),
-                  ),
-              )
-              .showAtPosition({
-                x: button.extraSettingsEl.getBoundingClientRect().left,
-                y: button.extraSettingsEl.getBoundingClientRect().bottom,
-              });
-          }),
-      );
       this.button(row, "检查更新", async () => {
         await this.refreshSmartSyncReleases();
         if (this.smartSyncWarning) throw Error(this.smartSyncWarning);
       });
-      const backup = this.pm.state.smartSyncBackup;
-      if (backup) {
-        const version = manifestVersion(backup.bundle["manifest.json"]!);
-        this.button(
-          row,
-          backup.verifiedAt ? "回退至 " + version : "恢复安装前版本",
-          async () => {
-            if (
-              !(await this.pm.confirm(
-                "恢复 Smart Sync 代码？保留当前配置；不能撤销配置或云端数据迁移。" +
-                  (backup.verifiedAt
-                    ? "目标已由你在本机确认正常。"
-                    : "安装前快照不代表已验证正常。"),
-              ))
-            )
-              return;
-            await verifyBundle(backup.bundle, backup.sha256);
-            await this.pm.installer.install(SMART_SYNC_ID, backup.bundle);
-          },
-        );
-        row.descEl.createDiv({
-          cls: "pmcn-plugin-meta",
-          text:
-            "回退目标：" +
-            version +
-            (backup.verifiedAt
-              ? "（本机已确认正常；仅恢复代码）"
-              : "（安装前快照；未确认正常）"),
-        });
-      }
       const recent = recentReleases(this.smartSyncReleases);
       if (!recent.length) {
         smartSyncContainer.createDiv({
@@ -753,7 +635,6 @@ class Page extends CompatibleSettingsTab {
       }
       this.selectSmartSyncDefault();
       const choices = new Setting(smartSyncContainer)
-        .setName("历史版本")
         .setClass("pmcn-release-picker");
       choices.addDropdown((dropdown) => {
         if (!this.smartSyncSelected)
@@ -778,6 +659,7 @@ class Page extends CompatibleSettingsTab {
               attr: { value: smartSyncReleaseKey(release) },
             });
         }
+        dropdown.selectEl.setAttribute("aria-label", "Smart Sync 版本");
         dropdown
           .setValue(this.smartSyncSelected)
           .setDisabled(this.working)
@@ -804,7 +686,22 @@ class Page extends CompatibleSettingsTab {
         this.refreshWujieView?.();
       });
       void this.refreshSmartSyncReleases();
+      void this.refreshTranslateAlpha();
     }
+  }
+
+  async refreshTranslateAlpha() {
+    const generation = ++this.translateGeneration;
+    try {
+      const release = await loadTranslateAlpha(this.pm.net);
+      if (!this.pageVisible || generation !== this.translateGeneration) return;
+      this.translateRelease = release;
+      this.translateWarning = "";
+    } catch (error) {
+      if (!this.pageVisible || generation !== this.translateGeneration) return;
+      this.translateWarning = "无界译检查更新失败：" + String(error);
+    }
+    this.refreshTranslateView?.();
   }
 
   selectSmartSyncDefault() {
@@ -845,20 +742,6 @@ class Page extends CompatibleSettingsTab {
       this.refreshSmartSyncView?.();
   }
 
-  async markSmartSyncVerified() {
-    const bundle = await readBundle(
-      this.app.vault.adapter,
-      this.app.vault.configDir + "/plugins/" + SMART_SYNC_ID,
-    );
-    this.pm.installer.validate(SMART_SYNC_ID, bundle);
-    this.pm.state.smartSyncBackup = {
-      bundle,
-      sha256: await hashes(bundle),
-      verifiedAt: new Date().toISOString(),
-    };
-    await this.pm.save();
-  }
-
   async installSmartSync(release: WujieRelease) {
     if (
       !(await this.pm.confirm(
@@ -868,25 +751,11 @@ class Page extends CompatibleSettingsTab {
           (release.channel === "Alpha" ? "Alpha 测试渠道" : "稳定版") +
           "）？" +
           (release.channel === "Alpha" ? "请在隔离测试库使用，" : "") +
-          "海外账号与国内版独立。将校验 SHA-256，保留配置；首次安装后需在第三方插件设置中手动启用。更新保留原启用状态，代码回退不能撤销配置或云端数据迁移。",
+          "海外账号与国内版独立。将校验 SHA-256，保留配置；首次安装后需在第三方插件设置中手动启用。更新保留原启用状态。",
       ))
     )
       return;
     const bundle = await downloadSmartSync(this.pm.net, release);
-    this.pm.installer.validate(SMART_SYNC_ID, bundle);
-    const current = manager(this.app).manifests[SMART_SYNC_ID];
-    if (current && !this.pm.state.smartSyncBackup) {
-      const previous = await readBundle(
-        this.app.vault.adapter,
-        this.app.vault.configDir + "/plugins/" + SMART_SYNC_ID,
-      );
-      this.pm.installer.validate(SMART_SYNC_ID, previous);
-      this.pm.state.smartSyncBackup = {
-        bundle: previous,
-        sha256: await hashes(previous),
-      };
-      await this.pm.save();
-    }
     await this.pm.installer.install(SMART_SYNC_ID, bundle, release.version);
   }
 
@@ -965,28 +834,7 @@ class Page extends CompatibleSettingsTab {
       }
     }
   }
-  async markWujieVerified() {
-    const bundle = await readBundle(
-      this.app.vault.adapter,
-      this.app.vault.configDir + "/plugins/wujie-sync",
-    );
-    this.pm.installer.validate("wujie-sync", bundle);
-    this.pm.state.verified = bundle;
-    this.pm.state.verifiedHashes = await hashes(bundle);
-    this.pm.state.verifiedAt = new Date().toISOString();
-    await this.pm.save();
-  }
   async installWujie(release: WujieRelease) {
-    const current = manager(this.app).manifests["wujie-sync"];
-    if (release.channel === "Alpha" && current && !this.pm.state.verified) {
-      if (
-        !(await this.pm.confirm(
-          "安装 Alpha 前，请确认当前版本已在本机验证正常，并将其保存为一键回退目标。确认后继续？",
-        ))
-      )
-        return;
-      await this.markWujieVerified();
-    }
     if (
       !(await this.pm.confirm(
         "安装无界同步 " +

@@ -182,7 +182,7 @@ test("both installed sync plugins appear once in separate cards, outside ordinar
   assert.equal(
     elements.filter((element) => element.classes.has("pmcn-sync-section"))
       .length,
-    2,
+    3,
   );
   assert.equal(
     elements.filter((element) => element.text === "已安装").length,
@@ -190,7 +190,7 @@ test("both installed sync plugins appear once in separate cards, outside ordinar
   );
 });
 
-test("1.12 page renders both update buttons and Wujie while network is unavailable", () => {
+test("1.12 opens all three first-party update checks once and places installation below the update row", () => {
   let alphaRequests = 0;
   const app = {
     plugins: {
@@ -226,10 +226,11 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
   assert.ok(texts.includes("Wujie Hub v0.1.22"));
   assert.ok(texts.includes("无界同步"));
   assert.ok(texts.includes("Smart Sync"));
-  assert.ok(texts.includes("历史版本"));
+  assert.ok(texts.includes("无界译"));
+  assert.ok(!texts.includes("历史版本"));
   assert.ok(texts.includes("安装所选版本"));
   assert.ok(texts.includes("1.1.4"));
-  assert.equal(texts.filter((text) => text === "检查更新").length, 3);
+  assert.equal(texts.filter((text) => text === "检查更新").length, 4);
   assert.equal(texts.includes("安装 Alpha"), false);
   assert.equal(page.smartSyncSelected, "");
   assert.equal(
@@ -240,7 +241,18 @@ test("1.12 page renders both update buttons and Wujie while network is unavailab
     ).length,
     2,
   );
-  assert.equal(alphaRequests, 3);
+  assert.equal(alphaRequests, 4);
+  const elements = [];
+  const collect = el => { elements.push(el); el.children.forEach(collect); };
+  collect(root);
+  const smart = elements.filter(el => el.classes.has("pmcn-sync-section")).at(-1);
+  assert.ok(smart.children[0].children.some(el => el.text === "检查更新"));
+  assert.ok(smart.children[1].classes.has("pmcn-release-picker"));
+  assert.ok(smart.children[1].children.some(el => el.attributes.get("aria-label") === "Smart Sync 版本"));
+  assert.ok(smart.children[1].children.some(el => el.text === "安装所选版本"));
+  assert.equal(smart.children[0].children.length, 3);
+  page.renderPage(root);
+  assert.equal(alphaRequests, 4);
 });
 
 test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {

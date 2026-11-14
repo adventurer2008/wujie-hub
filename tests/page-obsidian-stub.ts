@@ -8,6 +8,10 @@ export class TestElement {
   text = "";
   hidden = false;
   isConnected = true;
+  attributes = new Map<string, string>();
+  setAttribute(name: string, value: string) {
+    this.attributes.set(name, value);
+  }
   empty() {
     this.children = [];
   }

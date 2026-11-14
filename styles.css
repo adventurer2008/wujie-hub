@@ -147,6 +147,17 @@
   width: 180px;
   max-width: 100%;
 }
+.pmcn-sync-section > .pmcn-release-picker.setting-item {
+  border: 0;
+  padding: 0 0 12px;
+  justify-content: flex-end;
+}
+.pmcn-sync-section > .pmcn-release-picker > .setting-item-info {
+  display: none;
+}
+.pmcn-sync-section > .pmcn-release-picker > .setting-item-control {
+  justify-content: flex-end;
+}
 .pmcn-community-section {
   margin-bottom: 16px;
 }
