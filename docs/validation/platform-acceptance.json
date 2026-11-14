@@ -1,22 +1,22 @@
 {
-  "pluginVersion": "0.1.32",
+  "pluginVersion": "0.1.33",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.32",
+    "pluginVersion": "0.1.33",
     "date": "2026-11-14",
     "maintainerApproved": true,
-    "instruction": "我check过了，三个卡片显示都对，就把这个新版Hub发正稳定版生产吧",
-    "scope": "Promote 0.1.32-alpha.4 to Stable after the maintainer accepted the three cards in the Windows test vault. Other native platforms, minimum-version runtime and native installation acceptance remain pending."
+    "instruction": "我check过了，无界译的简介和作者现在都对了，就把这个新版 Hub 发稳定版生产吧。",
+    "scope": "Promote 0.1.33-alpha.1 to Stable after the maintainer confirmed the Wujie Translate description and author in the Windows test vault. Other native platforms and minimum-version runtime acceptance remain pending."
   },
   "devices": [
     {
       "platform": "Windows",
       "realDevice": true,
       "obsidianVersion": "1.15.1",
-      "pluginVersion": "0.1.32-alpha.4",
-      "scope": "First-party card layout only",
+      "pluginVersion": "0.1.33-alpha.1",
+      "scope": "Wujie Translate card description and author",
       "passed": true,
-      "evidence": "first-party-release-picker-2026-11-14.md"
+      "evidence": "first-party-card-details-2026-11-14.md"
     }
   ]
 }

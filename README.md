@@ -1,4 +1,4 @@
-# Wujie Hub — 0.1.32
+# Wujie Hub — 0.1.33
 
 插件安装中心
 
@@ -33,7 +33,7 @@ Search terms are matched locally and are not uploaded as search parameters. Requ
 
 ## Compatibility and license
 
-Requires Obsidian **1.12.0 or later** and allows installation on Windows, macOS, Linux, Android, and iOS/iPadOS. Desktop-only target plugins are rejected on mobile before any file mutation. The maintainer accepted the three-card layout in Obsidian 1.15.1 on Windows. Native installation, macOS, Linux desktop, Android, iPhone, iPad, and minimum-version runtime acceptance remain pending. See [the validation record](docs/validation/first-party-release-picker-2026-11-14.md). Internal plugin-management APIs may change; unsupported interfaces stop the operation. A crash or forced shutdown may require manually restoring backed-up release files.
+Requires Obsidian **1.12.0 or later** and allows installation on Windows, macOS, Linux, Android, and iOS/iPadOS. Desktop-only target plugins are rejected on mobile before any file mutation. The maintainer confirmed the Wujie Translate description and author in Obsidian 1.15.1 on Windows. Native installation, macOS, Linux desktop, Android, iPhone, iPad, and minimum-version runtime acceptance remain pending. See [the validation record](docs/validation/first-party-card-details-2026-11-14.md). Internal plugin-management APIs may change; unsupported interfaces stop the operation. A crash or forced shutdown may require manually restoring backed-up release files.
 
 Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
