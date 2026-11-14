@@ -74,10 +74,12 @@ export class Setting {
   settingEl: TestElement;
   nameEl: TestElement;
   descEl: TestElement;
+  controlEl: TestElement;
   constructor(parent: TestElement) {
     this.settingEl = parent.createDiv();
     this.nameEl = this.settingEl.createDiv();
     this.descEl = this.settingEl.createDiv();
+    this.controlEl = this.settingEl.createDiv();
   }
   setName(text: string) {
     this.nameEl.setText(text);
@@ -95,7 +97,7 @@ export class Setting {
     return this;
   }
   addButton(callback: (control: Control) => unknown) {
-    callback(new Control(this.settingEl.createDiv()));
+    callback(new Control(this.controlEl.createDiv()));
     return this;
   }
   addSearch(callback: (control: Control) => unknown) {
@@ -103,8 +105,8 @@ export class Setting {
     return this;
   }
   addDropdown(callback: (control: Control) => unknown) {
-    const control = new Control(this.settingEl.createDiv());
-    this.settingEl.children.push(control.selectEl);
+    const control = new Control(this.controlEl.createDiv());
+    this.controlEl.children.push(control.selectEl);
     callback(control);
     return this;
   }

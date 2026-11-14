@@ -246,11 +246,13 @@ test("1.12 opens all three first-party update checks once and places installatio
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
   const smart = elements.filter(el => el.classes.has("pmcn-sync-section")).at(-1);
-  assert.ok(smart.children[0].children.some(el => el.text === "检查更新"));
-  assert.ok(smart.children[1].classes.has("pmcn-release-picker"));
-  assert.ok(smart.children[1].children.some(el => el.attributes.get("aria-label") === "Smart Sync 版本"));
-  assert.ok(smart.children[1].children.some(el => el.text === "安装所选版本"));
-  assert.equal(smart.children[0].children.length, 3);
+  assert.equal(smart.children.length, 1);
+  const actions = smart.children[0].children.at(-1);
+  assert.equal(actions.children[0].text, "检查更新");
+  const picker = actions.children[1];
+  assert.ok(picker.classes.has("pmcn-release-picker"));
+  assert.ok(picker.children.at(-1).children.some(el => el.attributes.get("aria-label") === "Smart Sync 版本"));
+  assert.ok(picker.children.at(-1).children.some(el => el.text === "安装所选版本"));
   page.renderPage(root);
   assert.equal(alphaRequests, 4);
 });

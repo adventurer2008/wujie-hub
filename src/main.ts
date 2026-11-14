@@ -543,7 +543,7 @@ class Page extends CompatibleSettingsTab {
       if (recentReleases(this.releases).length) {
         const recent = recentReleases(this.releases);
         this.selectDefaultRelease();
-        const choices = new Setting(el)
+        const choices = new Setting(wujieRow.controlEl)
           .setClass("pmcn-release-picker");
         choices.addDropdown((d) => {
           if (!this.selected)
@@ -592,7 +592,7 @@ class Page extends CompatibleSettingsTab {
         .setDesc("国内 Alpha · " + (installed ? "已安装 " + installed.version : "未安装"));
       if (this.translateWarning) row.descEl.createDiv({ text: this.translateWarning });
       this.button(row, "检查更新", () => this.refreshTranslateAlpha());
-      if (release) this.button(new Setting(translateContainer).setClass("pmcn-release-picker"), "安装 " + release.version, async () => {
+      if (release) this.button(new Setting(row.controlEl).setClass("pmcn-release-picker"), "安装 " + release.version, async () => {
         const latest = await loadTranslateAlpha(this.pm.net);
         this.translateRelease = latest;
         if (latest.version !== release.version) throw Error("Alpha 已更新，请确认新版本后安装");
@@ -634,7 +634,7 @@ class Page extends CompatibleSettingsTab {
         return;
       }
       this.selectSmartSyncDefault();
-      const choices = new Setting(smartSyncContainer)
+      const choices = new Setting(row.controlEl)
         .setClass("pmcn-release-picker");
       choices.addDropdown((dropdown) => {
         if (!this.smartSyncSelected)

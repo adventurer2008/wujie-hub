@@ -132,7 +132,14 @@
 .pmcn-wujie-row.setting-item {
   margin-top: 12px;
   padding: 12px 0;
-  border-bottom: 0;
+  border: 0;
+  align-items: flex-start;
+}
+.pmcn-wujie-row.setting-item > .setting-item-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 .pmcn-search-results[hidden],
 .pmcn-browser-summary[hidden] {
@@ -143,20 +150,18 @@
   padding: 0;
   border: 0;
 }
-.pmcn-release-picker select {
-  width: 180px;
-  max-width: 100%;
-}
-.pmcn-sync-section > .pmcn-release-picker.setting-item {
+.pmcn-wujie-row .pmcn-release-picker.setting-item {
   border: 0;
-  padding: 0 0 12px;
-  justify-content: flex-end;
+  padding: 0;
+  margin: 0;
 }
-.pmcn-sync-section > .pmcn-release-picker > .setting-item-info {
+.pmcn-wujie-row .pmcn-release-picker > .setting-item-info {
   display: none;
 }
-.pmcn-sync-section > .pmcn-release-picker > .setting-item-control {
+.pmcn-wujie-row .pmcn-release-picker > .setting-item-control {
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 6px;
 }
 .pmcn-community-section {
   margin-bottom: 16px;
@@ -180,6 +185,14 @@
   }
   .pmcn-installed-row .setting-item-info,
   .pmcn-release-picker .setting-item-info {
+    flex-basis: 100%;
+  }
+  .pmcn-wujie-row.setting-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pmcn-wujie-row > .setting-item-info,
+  .pmcn-wujie-row > .setting-item-control {
     flex-basis: 100%;
   }
   .pmcn-installed-row .setting-item-control,

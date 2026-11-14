@@ -1,3 +1,9 @@
+# 0.1.32-alpha.2
+
+CHG-20261114-HUB-COMPACT-RELEASE-CONTROLS。版本下拉和安装按钮紧贴「检查更新」下方，移除卡片内的横线。
+
+Windows 的 Obsidian 1.15.0 已实测无界同步卡片的新布局。macOS、Linux 桌面、Android、iPhone 和 iPad 真机未验证。窄屏规则允许按钮换行。此改动只涉及设置页布局。
+
 # 0.1.32-alpha.1
 
 CHG-20261114-CN-TRANSLATE-HUB。国内 Hub 测试版加入无界译 Alpha，校验独立插件 ID、版本及三个安装文件后安装。
