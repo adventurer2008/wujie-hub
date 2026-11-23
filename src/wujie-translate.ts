@@ -40,7 +40,7 @@ async function loadRelease(net: Network, id: Product, channel: "Stable" | "Alpha
 
 export const loadTranslateRelease = (net: Network, channel: "Stable" | "Alpha") => loadRelease(net, TRANSLATE_ID, channel);
 export const loadTranslateAlpha = (net: Network) => loadTranslateRelease(net, "Alpha");
-export const loadWordRelease = (net: Network) => loadRelease(net, WORD_ID, "Alpha");
+export const loadWordRelease = (net: Network, channel: "Stable" | "Alpha" = "Stable") => loadRelease(net, WORD_ID, channel);
 
 async function downloadRelease(net: Network, id: Product, release: Awaited<ReturnType<typeof loadRelease>>) {
   const bundle: Bundle = {};

@@ -52,23 +52,24 @@ test("Hub refuses a feed for another plugin or a different download host", async
   }));
 });
 
-test("Hub installs only a hash-verified Smart Word Alpha bundle", async () => {
-  const base = "https://user.wujiesync.cc/download/smart-word/alpha/";
-  const version = "1.0.1-alpha.1";
-  const manifest = JSON.stringify({ id: "smart-word", version });
-  const bundle = { ...assets, "manifest.json": manifest };
-  const sha256 = Object.fromEntries(Object.entries(bundle).map(([name, content]) => [name, createHash("sha256").update(content).digest("hex")]));
-  const release = { id: "smart-word", channel: "Alpha", version, baseUrl: base + version + "/", sha256 };
-  const feed = { schemaVersion: 1, pluginId: "smart-word", channel: "Alpha", latest: version, releases: [release] };
-  const net = {
-    json: async url => { assert.equal(url, base + "releases.json"); return feed; },
-    get: async url => {
-      assert.ok(url.startsWith(release.baseUrl));
-      return bundle[url.slice(release.baseUrl.length)];
-    },
-  };
-  const checked = await loadWordRelease(net);
-  assert.deepEqual(await downloadWordRelease(net, checked), bundle);
-  await assert.rejects(downloadWordRelease({ get: async () => "changed" }, checked), /文件校验失败/);
-  await assert.rejects(loadWordRelease({ json: async () => ({ ...feed, pluginId: "wujie-translate" }) }), /格式错误/);
-});
+for (const [channel, version] of [["Stable", "1.0.1"], ["Alpha", "1.0.1-alpha.1"]]) {
+  test(`Hub installs only a hash-verified Smart Word ${channel} bundle`, async () => {
+    const base = `https://user.wujiesync.cc/download/smart-word/${channel.toLowerCase()}/`;
+    const manifest = JSON.stringify({ id: "smart-word", version });
+    const bundle = { ...assets, "manifest.json": manifest };
+    const sha256 = Object.fromEntries(Object.entries(bundle).map(([name, content]) => [name, createHash("sha256").update(content).digest("hex")]));
+    const release = { id: "smart-word", channel, version, baseUrl: base + version + "/", sha256 };
+    const feed = { schemaVersion: 1, pluginId: "smart-word", channel, latest: version, releases: [release] };
+    const net = {
+      json: async url => { assert.equal(url, base + "releases.json"); return feed; },
+      get: async url => {
+        assert.ok(url.startsWith(release.baseUrl));
+        return bundle[url.slice(release.baseUrl.length)];
+      },
+    };
+    const checked = await loadWordRelease(net, channel);
+    assert.deepEqual(await downloadWordRelease(net, checked), bundle);
+    await assert.rejects(downloadWordRelease({ get: async () => "changed" }, checked), /文件校验失败/);
+    await assert.rejects(loadWordRelease({ json: async () => ({ ...feed, pluginId: "wujie-translate" }) }, channel), /格式错误/);
+  });
+}

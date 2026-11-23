@@ -1,5 +1,9 @@
 # 0.1.34
 
+## 0.1.35
+
+CHG-20261124-SMART-WORD-STABLE. Promote the Smart Word installation card to production. Stable is selected by default when available. Alpha remains independently selectable.
+
 ## 0.1.35-alpha.1
 
 CHG-20261124-SMART-WORD-NAME. Add the Smart Word card for the `smart-word` Alpha package. Verify the package identity and all three download hashes before installation. Native Obsidian acceptance remains pending.

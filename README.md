@@ -1,12 +1,12 @@
-# Wujie Hub — 0.1.34
+# Wujie Hub — 0.1.35
 
 插件安装中心
 
-在国内网络环境下，搜索、安装和更新 Obsidian 社区插件，并管理无界同步、无界译和 Smart Sync 的版本。
+在国内网络环境下，搜索、安装和更新 Obsidian 社区插件，并管理无界同步、Smart Word、无界译和 Smart Sync 的版本。
 
 ## Overview
 
-Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its Chinese settings page has dedicated cards for Wujie Sync, Wujie Translate, and Smart Sync. Each card uses the same controls to select stable or Alpha releases and verifies their SHA-256 digests before installation.
+Wujie Hub searches, installs, and updates Obsidian community plugins through GitHub download mirrors. Its Chinese settings page has dedicated cards for Wujie Sync, Smart Word, Wujie Translate, and Smart Sync. Each card uses the same controls to select stable or Alpha releases and verifies their SHA-256 digests before installation.
 
 The page heading displays the currently loaded Wujie Hub version. If the native request transport fails for the official download site, a credential-free browser request retries the same HTTPS URL; it does not switch to the legacy host or GitHub. Refresh errors appear in the Wujie Sync section, and cache-write failures are reported separately from download failures. Mobile network acceptance remains pending.
 
@@ -53,7 +53,7 @@ Copyright 2026 Wujie Sync. Licensed under the [Apache License 2.0](LICENSE).
 
 ## 自研插件 / First-party plugins
 
-无界同步、无界译和 Smart Sync 各有一张卡片。打开设置页会自动检查三个插件，上方也可手动点「检查更新」。在下拉框中选择稳定版或测试版，再点「安装所选版本」。无界译安装前会重新核对所选渠道的清单与安装文件，首次安装后可在 Obsidian 的「第三方插件」中启用。
+无界同步、Smart Word、无界译和 Smart Sync 各有一张卡片。打开设置页会自动检查三个插件，上方也可手动点「检查更新」。在下拉框中选择稳定版或测试版，再点「安装所选版本」。无界译安装前会重新核对所选渠道的清单与安装文件，首次安装后可在 Obsidian 的「第三方插件」中启用。
 
 The dedicated **Smart Sync** section reads stable and Alpha releases from [the Global download index](https://smartsync.cc/download/releases.json) on opening or **检查更新** (Check for updates). It shows the five highest stable releases and three recent Alpha releases, defaults to the highest stable, and preserves an explicit selection while that release is available. With no stable release, the user must choose a test release. Reading the index never installs or updates a plugin. Future package versions do not require a matching Hub release: publishers add validated immutable packages and update the same schema-v1 index. Hub itself may still need maintenance for defects, security or Obsidian API changes.
 

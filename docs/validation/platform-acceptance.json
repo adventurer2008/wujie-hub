@@ -1,12 +1,12 @@
 {
-  "pluginVersion": "0.1.34",
+  "pluginVersion": "0.1.35",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.34",
-    "date": "2026-11-23",
+    "pluginVersion": "0.1.35",
+    "date": "2026-11-24",
     "maintainerApproved": true,
-    "instruction": "那都发生产吧",
-    "scope": "Publish 0.1.34 from the validated Hub preview before physical-device acceptance. Company Windows, macOS, Linux desktop, Android, iPhone, iPad and native minimum-version acceptance remain pending."
+    "instruction": "都发布生产吧",
+    "scope": "Promote both Alpha packages to production. Native acceptance is pending on Windows, macOS, Linux, Android, iPhone and iPad."
   },
   "devices": []
 }

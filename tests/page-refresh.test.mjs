@@ -224,7 +224,7 @@ test("1.12 opens each first-party update check once and places installation belo
     Stable: { version: "0.1.0" },
     Alpha: { version: "0.1.1-alpha.1" },
   };
-  page.wordRelease = { version: "1.0.1-alpha.1" };
+  page.wordReleases = { Stable: { version: "1.0.1" }, Alpha: { version: "1.0.1-alpha.1" } };
   const root = new TestElement();
   page.renderPage(root);
   const texts = [];
@@ -240,7 +240,7 @@ test("1.12 opens each first-party update check once and places installation belo
   assert.ok(texts.includes("无界译"));
   assert.ok(texts.includes("Smart Word"));
   assert.ok(texts.includes("1.0.1-alpha.1"));
-  assert.equal(page.wordSelected, "");
+  assert.equal(page.wordSelected, "Stable:1.0.1");
   assert.ok(!texts.includes("历史版本"));
   assert.ok(texts.includes("安装所选版本"));
   assert.ok(texts.includes("1.1.4"));
@@ -255,7 +255,7 @@ test("1.12 opens each first-party update check once and places installation belo
     ).length,
     2,
   );
-  assert.equal(alphaRequests, 6);
+  assert.equal(alphaRequests, 7);
   const elements = [];
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
@@ -297,7 +297,7 @@ test("1.12 opens each first-party update check once and places installation belo
   page.refreshWordView();
   assert.ok(cards[1].children[0].children[0].children.some(el => el.text === " v1.0.0 作者：lihy"));
   page.renderPage(root);
-  assert.equal(alphaRequests, 6);
+  assert.equal(alphaRequests, 7);
 });
 
 test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {
