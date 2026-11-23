@@ -182,7 +182,7 @@ test("both installed sync plugins appear once in separate cards, outside ordinar
   assert.equal(
     elements.filter((element) => element.classes.has("pmcn-sync-section"))
       .length,
-    3,
+    4,
   );
   assert.equal(
     elements.filter((element) => element.text === "已安装").length,
@@ -190,7 +190,7 @@ test("both installed sync plugins appear once in separate cards, outside ordinar
   );
 });
 
-test("1.12 opens all three first-party update checks once and places installation below the update row", () => {
+test("1.12 opens each first-party update check once and places installation below the update row", () => {
   let alphaRequests = 0;
   const app = {
     plugins: {
@@ -224,6 +224,7 @@ test("1.12 opens all three first-party update checks once and places installatio
     Stable: { version: "0.1.0" },
     Alpha: { version: "0.1.1-alpha.1" },
   };
+  page.wordRelease = { version: "1.0.0" };
   const root = new TestElement();
   page.renderPage(root);
   const texts = [];
@@ -237,10 +238,11 @@ test("1.12 opens all three first-party update checks once and places installatio
   assert.ok(texts.includes("无界同步"));
   assert.ok(texts.includes("Smart Sync"));
   assert.ok(texts.includes("无界译"));
+  assert.ok(texts.includes("无界 Word 编辑器"));
   assert.ok(!texts.includes("历史版本"));
   assert.ok(texts.includes("安装所选版本"));
   assert.ok(texts.includes("1.1.4"));
-  assert.equal(texts.filter((text) => text === "检查更新").length, 4);
+  assert.equal(texts.filter((text) => text === "检查更新").length, 5);
   assert.equal(texts.includes("安装 Alpha"), false);
   assert.equal(page.smartSyncSelected, "");
   assert.equal(
@@ -251,7 +253,7 @@ test("1.12 opens all three first-party update checks once and places installatio
     ).length,
     2,
   );
-  assert.equal(alphaRequests, 5);
+  assert.equal(alphaRequests, 6);
   const elements = [];
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
@@ -260,6 +262,7 @@ test("1.12 opens all three first-party update checks once and places installatio
   const translationDescription = "Translate selected text and look up English words with hosted bilingual dictionaries.";
   for (const [index, [name, metadata, description]] of [
     ["无界同步", " · 未安装 作者：lihy", syncDescription],
+    ["无界 Word 编辑器", " · 未安装 作者：lihy", "编辑 .docx 文档，插入图片并设置打开密码。安装后在 Obsidian 社区插件设置中启用。"],
     ["无界译", " v0.1.1 作者：lihy", translationDescription],
     ["Smart Sync", " · 未安装 作者：lihy", syncDescription],
   ].entries()) {
@@ -285,11 +288,14 @@ test("1.12 opens all three first-party update checks once and places installatio
   delete app.plugins.manifests["wujie-translate"];
   page.translateReleases = {};
   page.refreshTranslateView();
-  const [title, desc] = cards[1].children[0].children;
+  const [title, desc] = cards[2].children[0].children;
   assert.ok(title.children.some(el => el.text === " · 未安装 作者：lihy"));
   assert.equal(desc.text, translationDescription);
+  app.plugins.manifests["wujie-word"] = { id: "wujie-word", version: "1.0.0", author: "lihy" };
+  page.refreshWordView();
+  assert.ok(cards[1].children[0].children[0].children.some(el => el.text === " v1.0.0 作者：lihy"));
   page.renderPage(root);
-  assert.equal(alphaRequests, 5);
+  assert.equal(alphaRequests, 6);
 });
 
 test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {

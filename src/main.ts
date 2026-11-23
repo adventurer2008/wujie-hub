@@ -2,7 +2,7 @@ import { Plugin, Setting, Notice, Modal, PluginManifest, Menu } from "obsidian";
 import { Network, Entry } from "./network";
 import { record } from "./json";
 import { Installer } from "./installer";
-import { TRANSLATE_ID, downloadTranslateRelease, loadTranslateRelease } from "./wujie-translate";
+import { TRANSLATE_ID, WORD_ID, downloadTranslateRelease, downloadWordRelease, loadTranslateRelease, loadWordRelease } from "./wujie-translate";
 import {
   SMART_SYNC_ID,
   downloadSmartSync,
@@ -44,6 +44,11 @@ const FIRST_PARTY_PLUGINS = {
     description: "Translate selected text and look up English words with hosted bilingual dictionaries.",
   },
   [SMART_SYNC_ID]: { name: "Smart Sync", author: "lihy", description: SYNC_DESCRIPTION },
+  [WORD_ID]: {
+    name: "无界 Word 编辑器",
+    author: "lihy",
+    description: "编辑 .docx 文档，插入图片并设置打开密码。安装后在 Obsidian 社区插件设置中启用。",
+  },
 };
 class Confirm extends Modal {
   constructor(
@@ -140,6 +145,10 @@ class Page extends CompatibleSettingsTab {
   translateSelected = "";
   translateReleases: Partial<Record<"Stable" | "Alpha", Awaited<ReturnType<typeof loadTranslateRelease>>>> = {};
   refreshTranslateView?: () => void;
+  wordRelease?: Awaited<ReturnType<typeof loadWordRelease>>;
+  wordGeneration = 0;
+  wordWarning = "";
+  refreshWordView?: () => void;
 
   constructor(private pm: PM) {
     super(pm.app, pm);
@@ -173,9 +182,11 @@ class Page extends CompatibleSettingsTab {
     this.openGeneration++;
     this.smartSyncGeneration++;
     this.translateGeneration++;
+    this.wordGeneration++;
     this.refreshWujieView = undefined;
     this.refreshSmartSyncView = undefined;
     this.refreshTranslateView = undefined;
+    this.refreshWordView = undefined;
     this.query = "";
     this.resultMetaEls.clear();
   }
@@ -615,6 +626,26 @@ class Page extends CompatibleSettingsTab {
     };
     this.refreshWujieView = renderWujie;
     renderWujie();
+    const wordContainer = el.createDiv({ cls: "pmcn-sync-section" });
+    this.refreshWordView = () => {
+      const version = this.wordRelease?.version ?? "";
+      this.renderFirstPartyCard(wordContainer, WORD_ID, {
+        warning: this.wordWarning,
+        check: () => this.refreshWordRelease(),
+        releases: version ? [{ channel: "Stable", version, value: version }] : [],
+        selected: version,
+        onSelect: () => {},
+        install: async () => {
+          if (!version) throw Error("请选择可用版本");
+          const latest = await loadWordRelease(this.pm.net);
+          this.wordRelease = latest;
+          if (latest.version !== version) throw Error("版本已更新，请确认新版本后安装");
+          const bundle = await downloadWordRelease(this.pm.net, latest);
+          await this.pm.installer.install(WORD_ID, bundle, version);
+        },
+      });
+    };
+    this.refreshWordView();
     const translateContainer = el.createDiv({ cls: "pmcn-sync-section" });
     this.refreshTranslateView = () => {
       const releases = (["Stable", "Alpha"] as const).flatMap((channel) => {
@@ -678,7 +709,22 @@ class Page extends CompatibleSettingsTab {
       });
       void this.refreshSmartSyncReleases();
       void this.refreshTranslateReleases();
+      void this.refreshWordRelease();
     }
+  }
+
+  async refreshWordRelease() {
+    const generation = ++this.wordGeneration;
+    try {
+      const release = await loadWordRelease(this.pm.net);
+      if (!this.pageVisible || generation !== this.wordGeneration) return;
+      this.wordRelease = release;
+      this.wordWarning = "";
+    } catch {
+      if (!this.pageVisible || generation !== this.wordGeneration) return;
+      this.wordWarning = "正式版检查更新失败";
+    }
+    this.refreshWordView?.();
   }
 
   async refreshTranslateReleases() {
