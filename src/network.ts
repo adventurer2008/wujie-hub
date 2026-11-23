@@ -7,6 +7,12 @@ export const MIRRORS = [
   "https://gh.monlor.com/",
   "https://wget.la/",
 ];
+export const WUJIE_DOWNLOAD_ORIGIN = "https://user.wujiesync.cc";
+const WUJIE_DOWNLOAD_ORIGINS = [
+  WUJIE_DOWNLOAD_ORIGIN,
+  "https://key.106-15-232-208.sslip.io",
+  "https://new.106-15-232-208.sslip.io",
+];
 export interface Entry {
   id: string;
   name: string;
@@ -16,6 +22,14 @@ export interface Entry {
 export class Network {
   last = "";
   wujieHistoryCacheUsed = false;
+  private wujieOrigin = WUJIE_DOWNLOAD_ORIGIN;
+  private wujieRevision = 0;
+  private wujieOriginChanged: (origin: string) => void = () => {};
+  configureWujieOrigin(saved: unknown, onChange: (origin: string) => void) {
+    if (typeof saved === "string" && WUJIE_DOWNLOAD_ORIGINS.includes(saved))
+      this.wujieOrigin = saved;
+    this.wujieOriginChanged = onChange;
+  }
   private versionCache = new Map<
     string,
     { at: number; manifest: PluginManifest }
@@ -23,13 +37,14 @@ export class Network {
   private pendingVersions = new Map<string, Promise<PluginManifest>>();
   private async downloadText(
     url: string,
+    timeout = 12000,
   ): Promise<{ status: number; text: string }> {
     let timer: number | undefined;
     try {
       return await Promise.race([
         requestUrl({ url, throw: false }),
         new Promise<never>((_, reject) => {
-          timer = window.setTimeout(() => reject(Error("请求超时")), 12000);
+          timer = window.setTimeout(() => reject(Error("请求超时")), timeout);
         }),
       ]);
     } catch (nativeError) {
@@ -37,7 +52,7 @@ export class Network {
       // Different native/WebView network stacks may behave differently on mobile.
       // Never send community/proxy URLs or credentials through this fallback.
       if (
-        !["https://user.wujiesync.cc", "https://smartsync.cc"].includes(
+        ![...WUJIE_DOWNLOAD_ORIGINS, "https://smartsync.cc"].includes(
           target.origin,
         ) ||
         target.username ||
@@ -47,7 +62,7 @@ export class Network {
       )
         throw nativeError;
       const controller = new AbortController();
-      const fetchTimer = window.setTimeout(() => controller.abort(), 12000);
+      const fetchTimer = window.setTimeout(() => controller.abort(), timeout);
       try {
         const response = await window.fetch(url, {
           credentials: "omit",
@@ -70,6 +85,35 @@ export class Network {
     } finally {
       window.clearTimeout(timer);
     }
+  }
+  private async getWujie(url: URL, validate: (s: string) => void) {
+    const revision = this.wujieRevision;
+    const start = WUJIE_DOWNLOAD_ORIGINS.indexOf(this.wujieOrigin);
+    const candidates = [...WUJIE_DOWNLOAD_ORIGINS.slice(start), ...WUJIE_DOWNLOAD_ORIGINS.slice(0, start)];
+    const errors: string[] = [];
+    for (const origin of candidates) {
+      let response: { status: number; text: string };
+      try {
+        response = await this.downloadText(origin + url.pathname, 4500);
+      } catch (error) {
+        errors.push(new URL(origin).hostname + ": " + String(error));
+        continue;
+      }
+      if ([502, 503, 504].includes(response.status)) {
+        errors.push(new URL(origin).hostname + ": HTTP " + response.status);
+        continue;
+      }
+      if (response.status !== 200) throw Error("HTTP " + response.status);
+      if (response.text.length > 20_000_000) throw Error("文件过大");
+      validate(response.text);
+      if (revision === this.wujieRevision && origin !== this.wujieOrigin) {
+        this.wujieOrigin = origin;
+        this.wujieRevision++;
+        this.wujieOriginChanged(origin);
+      }
+      return response.text;
+    }
+    throw Error("无界同步下载入口均失败：" + errors.join("；"));
   }
   async latest(
     repo: string,
@@ -141,8 +185,14 @@ export class Network {
       throw Error("版本查询暂不可用，请稍后重试");
     }
   }
-  async get(url: string, validate: (s: string) => void = () => {}) {
+  async get(url: string, validate: (s: string) => void = () => {}, wujie = false) {
     if (!url.startsWith("https://")) throw Error("下载仅允许 HTTPS");
+    if (wujie) {
+      const target = new URL(url);
+      if (target.origin === WUJIE_DOWNLOAD_ORIGIN && target.pathname.startsWith("/download/") &&
+        !target.username && !target.password && !target.search && !target.hash)
+        return this.getWujie(target, validate);
+    }
     const urls =
       /^https:\/\/(raw.githubusercontent.com|github.com|api.github.com)\//.test(
         url,
@@ -171,11 +221,11 @@ export class Network {
     }
     throw Error("下载源均失败：" + errors.join("；"));
   }
-  async json<T>(url: string): Promise<T> {
+  async json<T>(url: string, wujie = false): Promise<T> {
     return JSON.parse(
       await this.get(url, (s) => {
         JSON.parse(s);
-      }),
+      }, wujie),
     ) as T;
   }
   async catalog(): Promise<Entry[]> {

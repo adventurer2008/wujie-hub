@@ -12,6 +12,37 @@ await build({
 });
 const { Network } = await import("../test-output/network.mjs");
 
+test("China downloads retain the working endpoint across restarts and reject malformed data", async () => {
+  const primary = "https://user.wujiesync.cc";
+  const key = "https://key.106-15-232-208.sslip.io";
+  const alternate = "https://new.106-15-232-208.sslip.io";
+  const feed = "/download/alpha/releases.json";
+  const calls = [], saved = [];
+  globalThis.__pmcnRequest = async ({ url }) => {
+    calls.push(url);
+    return new URL(url).origin === alternate
+      ? { status: 200, text: '{"releases":[]}' }
+      : { status: 503, text: "unavailable" };
+  };
+  const network = new Network();
+  network.configureWujieOrigin("https://untrusted.test", (origin) => saved.push(origin));
+  assert.deepEqual(await network.json(primary + feed, true), { releases: [] });
+  assert.deepEqual(calls, [primary + feed, key + feed, alternate + feed]);
+  assert.deepEqual(saved, [alternate]);
+  const restarted = new Network();
+  restarted.configureWujieOrigin(saved[0], () => assert.fail("healthy endpoint should remain selected"));
+  calls.length = 0;
+  await restarted.json(primary + feed, true);
+  assert.deepEqual(calls, [alternate + feed]);
+  globalThis.__pmcnRequest = async ({ url }) => {
+    calls.push(url);
+    return { status: 200, text: 'invalid JSON' };
+  };
+  calls.length = 0;
+  await assert.rejects(restarted.json(primary + feed, true), SyntaxError);
+  assert.deepEqual(calls, [alternate + feed]);
+});
+
 test("official download transport failure uses credential-free same-host WebView fetch", async () => {
   const original = globalThis.fetch;
   const urls = [];

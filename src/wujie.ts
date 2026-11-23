@@ -1,8 +1,8 @@
 import { Bundle, FILES, compare } from "./core";
-import { Network } from "./network";
+import { Network, WUJIE_DOWNLOAD_ORIGIN } from "./network";
 import { record } from "./json";
 export const WUJIE_REPO = "adventurer2008/obsidian-smart-sync-release-cn";
-export const WUJIE_DOWNLOAD_SITE = "https://user.wujiesync.cc/download/";
+export const WUJIE_DOWNLOAD_SITE = WUJIE_DOWNLOAD_ORIGIN + "/download/";
 export const WUJIE_ALPHA_FEED = new URL(
   "alpha/releases.json",
   WUJIE_DOWNLOAD_SITE,
@@ -148,7 +148,7 @@ export function parseSiteFeed(
   });
 }
 export async function loadSiteAlpha(net: Network): Promise<WujieRelease[]> {
-  const feed = await net.json<unknown>(WUJIE_ALPHA_FEED);
+  const feed = await net.json<unknown>(WUJIE_ALPHA_FEED, true);
   const releases = parseSiteFeed(feed, WUJIE_ALPHA_FEED);
   if (!releases.length) throw Error("下载站尚无可识别的 Alpha 安装清单");
   return releases;
@@ -213,7 +213,7 @@ export async function loadWujieReleases(
 ): Promise<WujieRelease[]> {
   net.wujieHistoryCacheUsed = false;
   const url = feedUrl || new URL("releases.json", WUJIE_DOWNLOAD_SITE).href;
-  const feed = await net.json<unknown>(url);
+  const feed = await net.json<unknown>(url, true);
   const releases = parseSiteFeed(feed, url).filter(
     (r) => r.channel === "Stable",
   );
@@ -272,6 +272,8 @@ export async function downloadWujie(
           ).href,
         release.channel,
       ),
+      undefined,
+      true,
     );
   }
   await verifyBundle(b, release.sha256);

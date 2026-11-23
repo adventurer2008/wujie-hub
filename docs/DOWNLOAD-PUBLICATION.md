@@ -1,6 +1,6 @@
 # Official Wujie download publication
 
-Alpha and stable feeds and install files are served under `https://user.wujiesync.cc/download/`. Wujie Hub does not fall back to the old official host or GitHub for Wujie installation files. Ordinary community plugin mirrors are separate.
+The canonical China Sync Alpha and stable download base is `https://user.wujiesync.cc/download/`. Hub remembers the latest reachable official origin and cycles to `key.106-15-232-208.sslip.io`, then `new.106-15-232-208.sslip.io`, on connection failures or temporary gateway errors. The alternate origins serve the same feeds and files. Hub retains SHA-256, plugin ID and version checks before installation. Custom feeds, community mirrors, Wujie Translate and Global routing follow their existing paths.
 
 Alpha publication uses `scripts/publish-alpha.ps1` and `scripts/update-alpha-index.py`. Immutable old version metadata is retained; generated indexes use the new domain.
 

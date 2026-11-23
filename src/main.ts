@@ -31,6 +31,7 @@ interface State {
   wujieReleases?: WujieRelease[];
   installedWujieTag?: string;
   feedUrl?: string;
+  wujieDownloadOrigin?: string;
   smartSyncReleases?: WujieRelease[];
 }
 const SYNC_DESCRIPTION =
@@ -80,6 +81,10 @@ export default class PM extends Plugin {
     const saved: unknown = await this.loadData();
     this.state = { ...this.state, ...record(saved) };
     this.net.last = this.state.lastMirror;
+    this.net.configureWujieOrigin(this.state.wujieDownloadOrigin, (origin) => {
+      this.state.wujieDownloadOrigin = origin;
+      void this.save().catch(() => {});
+    });
     this.installer = new Installer(this.app, this.manifest.id);
     this.addSettingTab(new Page(this));
     this.addCommand({
