@@ -50,6 +50,7 @@ const FIRST_PARTY_PLUGINS = {
     description: "编辑 .docx 文档，插入图片并设置打开密码。安装后在 Obsidian 社区插件设置中启用。",
   },
 };
+const isFirstParty = (id: string) => Object.prototype.hasOwnProperty.call(FIRST_PARTY_PLUGINS, id);
 class Confirm extends Modal {
   constructor(
     app: Plugin["app"],
@@ -358,9 +359,7 @@ class Page extends CompatibleSettingsTab {
               : 3;
       };
       const matched = [...entries.values()]
-        .filter(
-          (entry) => entry.id !== "wujie-sync" && entry.id !== SMART_SYNC_ID,
-        )
+        .filter((entry) => !isFirstParty(entry.id))
         .filter((e) =>
           (
             e.name +
@@ -429,23 +428,14 @@ class Page extends CompatibleSettingsTab {
         }
 
         if (installed) {
-          const protectedPlugin =
-            isManagerPlugin(e.id, this.pm.manifest.id) ||
-            e.id === "wujie-sync" ||
-            e.id === SMART_SYNC_ID;
+          const protectedPlugin = isManagerPlugin(e.id, this.pm.manifest.id);
           if (this.hasUpdate(installed) && !protectedPlugin)
             this.button(row, "加速更新", () => this.installCommunity(e));
           else
             row.addButton((button) =>
               button.setButtonText("已安装").setDisabled(true),
             );
-        } else if (e.id === SMART_SYNC_ID)
-          row.addButton((button) =>
-            button
-              .setButtonText("请到 Smart Sync 专属区安装")
-              .setDisabled(true),
-          );
-        else this.button(row, "安装", () => this.installCommunity(e));
+        } else this.button(row, "安装", () => this.installCommunity(e));
       }
     };
     const loadCatalog = () => {
@@ -527,8 +517,7 @@ class Page extends CompatibleSettingsTab {
       const targets = Object.values(p.manifests).filter(
         (m) =>
           !isManagerPlugin(m.id, this.pm.manifest.id) &&
-          m.id !== "wujie-sync" &&
-          m.id !== SMART_SYNC_ID &&
+          !isFirstParty(m.id) &&
           this.pm.state.catalog.some((e) => e.id === m.id),
       );
       let index = 0,
@@ -565,8 +554,7 @@ class Page extends CompatibleSettingsTab {
       const count = Object.values(p.manifests).filter(
         (m) =>
           !isManagerPlugin(m.id, this.pm.manifest.id) &&
-          m.id !== "wujie-sync" &&
-          m.id !== SMART_SYNC_ID &&
+          !isFirstParty(m.id) &&
           this.hasUpdate(m),
       ).length;
       new Notice(
@@ -580,8 +568,7 @@ class Page extends CompatibleSettingsTab {
     const updatable = Object.values(p.manifests).filter(
       (m) =>
         !isManagerPlugin(m.id, this.pm.manifest.id) &&
-        m.id !== "wujie-sync" &&
-        m.id !== SMART_SYNC_ID &&
+        !isFirstParty(m.id) &&
         this.hasUpdate(m),
     );
     if (this.updatesChecked && updatable.length) {
@@ -915,8 +902,7 @@ class Page extends CompatibleSettingsTab {
   async installCommunity(e: Entry) {
     if (
       isManagerPlugin(e.id, this.pm.manifest.id) ||
-      e.id === "wujie-sync" ||
-      e.id === SMART_SYNC_ID
+      isFirstParty(e.id)
     )
       throw Error("请使用对应专属管理方式");
     const m = await this.pm.net.latest(e.repo, undefined, true);
