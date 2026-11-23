@@ -224,7 +224,7 @@ test("1.12 opens each first-party update check once and places installation belo
     Stable: { version: "0.1.0" },
     Alpha: { version: "0.1.1-alpha.1" },
   };
-  page.wordRelease = { version: "1.0.0" };
+  page.wordReleases = { Stable: { version: "1.0.0" }, Alpha: { version: "1.0.1-alpha.1" } };
   const root = new TestElement();
   page.renderPage(root);
   const texts = [];
@@ -238,7 +238,9 @@ test("1.12 opens each first-party update check once and places installation belo
   assert.ok(texts.includes("无界同步"));
   assert.ok(texts.includes("Smart Sync"));
   assert.ok(texts.includes("无界译"));
-  assert.ok(texts.includes("无界 Word 编辑器"));
+  assert.ok(texts.includes("Smart Word"));
+  assert.ok(texts.includes("1.0.1-alpha.1"));
+  assert.equal(page.wordSelected, "Stable:1.0.0");
   assert.ok(!texts.includes("历史版本"));
   assert.ok(texts.includes("安装所选版本"));
   assert.ok(texts.includes("1.1.4"));
@@ -253,7 +255,7 @@ test("1.12 opens each first-party update check once and places installation belo
     ).length,
     2,
   );
-  assert.equal(alphaRequests, 6);
+  assert.equal(alphaRequests, 7);
   const elements = [];
   const collect = el => { elements.push(el); el.children.forEach(collect); };
   collect(root);
@@ -262,7 +264,7 @@ test("1.12 opens each first-party update check once and places installation belo
   const translationDescription = "Translate selected text and look up English words with hosted bilingual dictionaries.";
   for (const [index, [name, metadata, description]] of [
     ["无界同步", " · 未安装 作者：lihy", syncDescription],
-    ["无界 Word 编辑器", " · 未安装 作者：lihy", "编辑 .docx 文档，插入图片并设置打开密码。安装后在 Obsidian 社区插件设置中启用。"],
+    ["Smart Word", " · 未安装 作者：lihy", "编辑 .docx 文档，插入图片并设置打开密码。安装后在 Obsidian 社区插件设置中启用。"],
     ["无界译", " v0.1.1 作者：lihy", translationDescription],
     ["Smart Sync", " · 未安装 作者：lihy", syncDescription],
   ].entries()) {
@@ -295,7 +297,7 @@ test("1.12 opens each first-party update check once and places installation belo
   page.refreshWordView();
   assert.ok(cards[1].children[0].children[0].children.some(el => el.text === " v1.0.0 作者：lihy"));
   page.renderPage(root);
-  assert.equal(alphaRequests, 6);
+  assert.equal(alphaRequests, 7);
 });
 
 test("Smart Sync Alpha requires explicit consent before any download or installation", async () => {

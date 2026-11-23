@@ -45,7 +45,7 @@ const FIRST_PARTY_PLUGINS = {
   },
   [SMART_SYNC_ID]: { name: "Smart Sync", author: "lihy", description: SYNC_DESCRIPTION },
   [WORD_ID]: {
-    name: "无界 Word 编辑器",
+    name: "Smart Word",
     author: "lihy",
     description: "编辑 .docx 文档，插入图片并设置打开密码。安装后在 Obsidian 社区插件设置中启用。",
   },
@@ -146,7 +146,8 @@ class Page extends CompatibleSettingsTab {
   translateSelected = "";
   translateReleases: Partial<Record<"Stable" | "Alpha", Awaited<ReturnType<typeof loadTranslateRelease>>>> = {};
   refreshTranslateView?: () => void;
-  wordRelease?: Awaited<ReturnType<typeof loadWordRelease>>;
+  wordReleases: Partial<Record<"Stable" | "Alpha", Awaited<ReturnType<typeof loadWordRelease>>>> = {};
+  wordSelected = "";
   wordGeneration = 0;
   wordWarning = "";
   refreshWordView?: () => void;
@@ -615,20 +616,26 @@ class Page extends CompatibleSettingsTab {
     renderWujie();
     const wordContainer = el.createDiv({ cls: "pmcn-sync-section" });
     this.refreshWordView = () => {
-      const version = this.wordRelease?.version ?? "";
+      const releases = (["Stable", "Alpha"] as const).flatMap(channel => {
+        const release = this.wordReleases[channel];
+        return release ? [{ channel, version: release.version, value: channel + ":" + release.version }] : [];
+      });
+      if (!releases.some(release => release.value === this.wordSelected))
+        this.wordSelected = releases.find(release => release.channel === "Stable")?.value ?? "";
       this.renderFirstPartyCard(wordContainer, WORD_ID, {
         warning: this.wordWarning,
         check: () => this.refreshWordRelease(),
-        releases: version ? [{ channel: "Stable", version, value: version }] : [],
-        selected: version,
-        onSelect: () => {},
+        releases,
+        selected: this.wordSelected,
+        onSelect: value => { this.wordSelected = value; },
         install: async () => {
-          if (!version) throw Error("请选择可用版本");
-          const latest = await loadWordRelease(this.pm.net);
-          this.wordRelease = latest;
-          if (latest.version !== version) throw Error("版本已更新，请确认新版本后安装");
+          const selected = releases.find(release => release.value === this.wordSelected);
+          if (!selected) throw Error("请选择可用版本");
+          const latest = await loadWordRelease(this.pm.net, selected.channel);
+          this.wordReleases[selected.channel] = latest;
+          if (latest.version !== selected.version) throw Error("版本已更新，请确认新版本后安装");
           const bundle = await downloadWordRelease(this.pm.net, latest);
-          await this.pm.installer.install(WORD_ID, bundle, version);
+          await this.pm.installer.install(WORD_ID, bundle, latest.version);
         },
       });
     };
@@ -702,15 +709,16 @@ class Page extends CompatibleSettingsTab {
 
   async refreshWordRelease() {
     const generation = ++this.wordGeneration;
-    try {
-      const release = await loadWordRelease(this.pm.net);
-      if (!this.pageVisible || generation !== this.wordGeneration) return;
-      this.wordRelease = release;
-      this.wordWarning = "";
-    } catch {
-      if (!this.pageVisible || generation !== this.wordGeneration) return;
-      this.wordWarning = "正式版检查更新失败";
-    }
+    const channels = ["Stable", "Alpha"] as const;
+    const results = await Promise.allSettled(channels.map(channel => loadWordRelease(this.pm.net, channel)));
+    if (!this.pageVisible || generation !== this.wordGeneration) return;
+    const missing: string[] = [];
+    results.forEach((result, index) => {
+      const channel = channels[index];
+      if (result.status === "fulfilled") this.wordReleases[channel] = result.value;
+      else missing.push(channel === "Stable" ? "正式版" : "Alpha");
+    });
+    this.wordWarning = missing.length ? missing.join("、") + "检查更新失败" : "";
     this.refreshWordView?.();
   }
 
