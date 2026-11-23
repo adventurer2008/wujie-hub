@@ -2,7 +2,7 @@
 
 ## 0.1.35-alpha.1
 
-CHG-20261124-SMART-WORD-NAME. Add the Smart Word card with separate Stable and Alpha choices. Verify the package identity and all three download hashes before installation. Native Obsidian acceptance remains pending.
+CHG-20261124-SMART-WORD-NAME. Add the Smart Word card for the `smart-word` Alpha package. Verify the package identity and all three download hashes before installation. Native Obsidian acceptance remains pending.
 
 提高国内无界同步检查更新和下载安装包的可靠性。保留安装前的文件完整性校验。
 

@@ -4,11 +4,11 @@ import { Network } from "./network";
 import { verifyBundle } from "./wujie";
 
 export const TRANSLATE_ID = "wujie-translate";
-export const WORD_ID = "wujie-word";
+export const WORD_ID = "smart-word";
 const origin = "https://user.wujiesync.cc";
 const products = {
   [TRANSLATE_ID]: { path: "translate", name: "无界译" },
-  [WORD_ID]: { path: "word", name: "Smart Word" },
+  [WORD_ID]: { path: "smart-word", name: "Smart Word" },
 };
 type Product = keyof typeof products;
 
@@ -40,7 +40,7 @@ async function loadRelease(net: Network, id: Product, channel: "Stable" | "Alpha
 
 export const loadTranslateRelease = (net: Network, channel: "Stable" | "Alpha") => loadRelease(net, TRANSLATE_ID, channel);
 export const loadTranslateAlpha = (net: Network) => loadTranslateRelease(net, "Alpha");
-export const loadWordRelease = (net: Network, channel: "Stable" | "Alpha" = "Stable") => loadRelease(net, WORD_ID, channel);
+export const loadWordRelease = (net: Network) => loadRelease(net, WORD_ID, "Alpha");
 
 async function downloadRelease(net: Network, id: Product, release: Awaited<ReturnType<typeof loadRelease>>) {
   const bundle: Bundle = {};

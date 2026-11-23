@@ -52,14 +52,14 @@ test("Hub refuses a feed for another plugin or a different download host", async
   }));
 });
 
-test("Hub installs only a hash-verified Word Editor Stable bundle", async () => {
-  const base = "https://user.wujiesync.cc/download/word/stable/";
-  const version = "1.0.0";
-  const manifest = JSON.stringify({ id: "wujie-word", version });
+test("Hub installs only a hash-verified Smart Word Alpha bundle", async () => {
+  const base = "https://user.wujiesync.cc/download/smart-word/alpha/";
+  const version = "1.0.1-alpha.1";
+  const manifest = JSON.stringify({ id: "smart-word", version });
   const bundle = { ...assets, "manifest.json": manifest };
   const sha256 = Object.fromEntries(Object.entries(bundle).map(([name, content]) => [name, createHash("sha256").update(content).digest("hex")]));
-  const release = { id: "wujie-word", channel: "Stable", version, baseUrl: base + version + "/", sha256 };
-  const feed = { schemaVersion: 1, pluginId: "wujie-word", channel: "Stable", latest: version, releases: [release] };
+  const release = { id: "smart-word", channel: "Alpha", version, baseUrl: base + version + "/", sha256 };
+  const feed = { schemaVersion: 1, pluginId: "smart-word", channel: "Alpha", latest: version, releases: [release] };
   const net = {
     json: async url => { assert.equal(url, base + "releases.json"); return feed; },
     get: async url => {
