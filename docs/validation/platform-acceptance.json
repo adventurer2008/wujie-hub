@@ -1,12 +1,12 @@
 {
-  "pluginVersion": "0.1.35",
+  "pluginVersion": "0.1.36",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.35",
-    "date": "2026-11-24",
+    "pluginVersion": "0.1.36",
+    "date": "2026-11-26",
     "maintainerApproved": true,
-    "instruction": "都发布生产吧",
-    "scope": "Promote both Alpha packages to production. Native acceptance is pending on Windows, macOS, Linux, Android, iPhone and iPad."
+    "instruction": "发到生产吧",
+    "scope": "Promote the Hub 0.1.36-alpha.1 community-download fix to Stable. Native acceptance is pending on Windows, macOS, Linux, Android, iPhone and iPad."
   },
   "devices": []
 }
