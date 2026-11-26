@@ -1,3 +1,7 @@
+# 0.1.36-alpha.1
+
+CHG-20261126-HUB-COMMUNITY-DOWNLOAD-404. Community plugins without a release stylesheet can install when GitHub returns HTTP 404 for the optional file, even if mirrors time out or fail TLS. Required assets still block installation on download failure. Error text includes the repository, version and file. See [validation](docs/validation/community-download-404-20261126.md).
+
 # 0.1.34
 
 ## 0.1.35

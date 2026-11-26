@@ -19,6 +19,13 @@ export interface Entry {
   description: string;
   repo: string;
 }
+
+class DownloadError extends Error {
+  constructor(errors: string[], readonly directStatus?: number) {
+    super("下载源均失败：" + errors.join("；"));
+  }
+}
+
 export class Network {
   last = "";
   wujieHistoryCacheUsed = false;
@@ -207,9 +214,11 @@ export class Network {
           ].map((p) => p + url)
         : [url];
     const errors: string[] = [];
+    let directStatus: number | undefined;
     for (const u of urls) {
       try {
         const r = await this.downloadText(u);
+        if (u === url) directStatus = r.status;
         if (r.status !== 200) throw Error("HTTP " + r.status);
         if (r.text.length > 20_000_000) throw Error("文件过大");
         validate(r.text);
@@ -219,7 +228,7 @@ export class Network {
         errors.push(new URL(u).hostname + ": " + String(e));
       }
     }
-    throw Error("下载源均失败：" + errors.join("；"));
+    throw new DownloadError(errors, directStatus);
   }
   async json<T>(url: string, wujie = false): Promise<T> {
     return JSON.parse(
@@ -253,23 +262,28 @@ export class Network {
       "/releases/download/" +
       encodeURIComponent(version) +
       "/";
-    const manifest = await this.get(base + "manifest.json", (s) => {
+    const file = async (
+      name: "manifest.json" | "main.js" | "styles.css",
+      validate: (contents: string) => void,
+    ) => {
+      try {
+        return await this.get(base + name, validate);
+      } catch (error) {
+        // Mirror failures cannot establish absence. Only GitHub itself can.
+        if (name === "styles.css" && error instanceof DownloadError && error.directStatus === 404)
+          return null;
+        throw Error(repo + " " + version + " 的 " + name + " 下载失败：" + String(error));
+      }
+    };
+    const manifest = await file("manifest.json", (s) => {
       JSON.parse(s);
     });
-    const main = await this.get(base + "main.js", (s) => {
+    const main = await file("main.js", (s) => {
       if (!s.trim() || /^\s*</.test(s)) throw Error("无效脚本");
     });
-    // Missing CSS is accepted only when all upstream responses establish 404.
-    let css: string | null = null;
-    try {
-      css = await this.get(base + "styles.css", (s) => {
-        if (/^\s*</.test(s)) throw Error("无效样式");
-      });
-    } catch (e) {
-      const errors = String(e).split("：").slice(1).join("：").split("；");
-      if (!errors.length || !errors.every((x) => x.endsWith("HTTP 404")))
-        throw e;
-    }
+    const css = await file("styles.css", (s) => {
+      if (/^\s*</.test(s)) throw Error("无效样式");
+    });
     return { "manifest.json": manifest, "main.js": main, "styles.css": css };
   }
 }

@@ -212,3 +212,46 @@ test("concurrent identical lookups share a request and failed source does not bl
   assert.equal(calls, 3);
   assert.deepEqual(result, [current, current]);
 });
+
+function communityAssets(directStylesStatus, requiredMissing) {
+  const base = "https://github.com/author/demo/releases/download/1.2.3/";
+  globalThis.__pmcnRequest = async ({ url }) => {
+    const filename = url.slice(url.lastIndexOf("/") + 1);
+    if (filename === requiredMissing) return { status: 404, text: "" };
+    if (filename === "manifest.json")
+      return { status: 200, text: '{"id":"demo","version":"1.2.3"}' };
+    if (filename === "main.js") return { status: 200, text: "module.exports = {};" };
+    assert.equal(filename, "styles.css");
+    if (url === base + filename && directStylesStatus)
+      return { status: directStylesStatus, text: "" };
+    if (url === base + filename || url.startsWith("https://gh.llkk.cc/"))
+      throw Error("请求超时");
+    if (url.startsWith("https://ghproxy.net/")) throw Error("SSLHandshakeException");
+    return { status: 404, text: "" };
+  };
+}
+
+test("an upstream 404 skips optional CSS despite mixed mirror failures", async () => {
+  communityAssets(404);
+  const result = await new Network().release("author/demo", "1.2.3");
+  assert.equal(result["styles.css"], null);
+  assert.equal(JSON.parse(result["manifest.json"]).id, "demo");
+  assert.equal(result["main.js"], "module.exports = {};");
+});
+
+test("proxy 404s alone cannot discard CSS, and required files must be downloaded", async () => {
+  for (const status of [undefined, 503]) {
+    communityAssets(status);
+    await assert.rejects(
+      new Network().release("author/demo", "1.2.3"),
+      /author\/demo 1\.2\.3 的 styles\.css 下载失败/,
+    );
+  }
+  for (const filename of ["manifest.json", "main.js"]) {
+    communityAssets(404, filename);
+    await assert.rejects(
+      new Network().release("author/demo", "1.2.3"),
+      error => error.message.includes("author/demo 1.2.3 的 " + filename + " 下载失败"),
+    );
+  }
+});
