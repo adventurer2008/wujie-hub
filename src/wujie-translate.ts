@@ -16,7 +16,7 @@ async function loadRelease(net: Network, id: Product, channel: "Stable" | "Alpha
   const { path, name } = products[id];
   const directory = origin + "/download/" + path + "/" + channel.toLowerCase() + "/";
   const versionPattern = channel === "Stable" ? /^\d+\.\d+\.\d+$/ : /^\d+\.\d+\.\d+-alpha\.[1-9]\d*$/;
-  const feed = record(await net.json<unknown>(directory + "releases.json"));
+  const feed = record(await net.json<unknown>(directory + "releases.json", true));
   if (feed.schemaVersion !== 1 || feed.pluginId !== id ||
       feed.channel !== channel || typeof feed.latest !== "string" ||
       !versionPattern.test(feed.latest) ||
@@ -44,7 +44,7 @@ export const loadWordRelease = (net: Network, channel: "Stable" | "Alpha" = "Sta
 
 async function downloadRelease(net: Network, id: Product, release: Awaited<ReturnType<typeof loadRelease>>) {
   const bundle: Bundle = {};
-  for (const file of FILES) bundle[file] = await net.get(release.base + file);
+  for (const file of FILES) bundle[file] = await net.get(release.base + file, undefined, true);
   await verifyBundle(bundle, release.sha256);
   const manifest = record(JSON.parse(bundle["manifest.json"] || "null"));
   if (manifest.id !== id || manifest.version !== release.version)

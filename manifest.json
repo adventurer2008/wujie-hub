@@ -1,7 +1,7 @@
 {
   "id": "wujie-hub",
   "name": "Wujie Hub",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "minAppVersion": "1.12.0",
   "description": "Find and update community plugins through mirrors, and manage Wujie Sync, Smart Word, Wujie Translate, and Smart Sync releases.",
   "author": "Wujie Sync",

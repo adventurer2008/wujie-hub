@@ -1,12 +1,12 @@
 {
-  "pluginVersion": "0.1.36",
+  "pluginVersion": "0.1.37",
   "status": "deferred",
   "releaseAuthorization": {
-    "pluginVersion": "0.1.36",
+    "pluginVersion": "0.1.37",
     "date": "2026-11-26",
     "maintainerApproved": true,
-    "instruction": "发到生产吧",
-    "scope": "Promote the Hub 0.1.36-alpha.1 community-download fix to Stable. Native acceptance is pending on Windows, macOS, Linux, Android, iPhone and iPad."
+    "instruction": "Smart Word 和无界译的检查更新、安装下载都支持三个域名自动切换，然后发生产",
+    "scope": "Release the first-party download failover fix to production. Physical Windows, macOS, Linux, Android, iPhone and iPad failover acceptance remains pending."
   },
   "devices": []
 }
